@@ -1,0 +1,65 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --navy-blue: 220 32% 27%;
+    --royal-blue: 210 50% 35%;
+    --medium-blue: 220 50% 40%;
+    --light-blue: 210 30% 55%;
+    --sky-blue: 200 40% 80%;
+    --surface-gray: 210 10% 70%;
+    --background-light: 220 25% 95%;
+    --text-dark: 220 50% 8%;
+
+    --background: var(--background-light);
+    --foreground: var(--text-dark);
+    --card: 0 0% 100%;
+    --card-foreground: var(--text-dark);
+    --popover: 0 0% 100%;
+    --popover-foreground: var(--text-dark);
+    --primary: var(--navy-blue);
+    --primary-foreground: 0 0% 100%;
+    --secondary: var(--light-blue);
+    --secondary-foreground: 0 0% 100%;
+    --muted: var(--surface-gray);
+    --muted-foreground: var(--text-dark);
+    --accent: var(--medium-blue);
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: var(--surface-gray);
+    --input: var(--surface-gray);
+    --ring: var(--navy-blue);
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  .gradient-header {
+    background: linear-gradient(135deg, hsl(var(--navy-blue)) 0%, hsl(var(--royal-blue)) 100%);
+  }
+
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(var(--background-light)) 0%, hsl(var(--sky-blue)) 100%);
+  }
+
+  .gradient-card {
+    background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(var(--background-light)) 100%);
+  }
+
+  .shadow-brand {
+    box-shadow: 0 4px 6px -1px hsl(var(--navy-blue) / 0.1), 0 2px 4px -1px hsl(var(--navy-blue) / 0.06);
+  }
+
+  .shadow-brand-lg {
+    box-shadow: 0 10px 15px -3px hsl(var(--navy-blue) / 0.1), 0 4px 6px -2px hsl(var(--navy-blue) / 0.05);
+  }
+}

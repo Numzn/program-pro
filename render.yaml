@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: church-program-pro-client
+    env: static
+    buildCommand: cd client && npm ci && npm run build
+    staticPublishPath: ./client/dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://church-program-pro-server.onrender.com/api/*
+    envVars:
+      - key: VITE_API_URL
+        value: https://church-program-pro-server.onrender.com/api
+
+  - type: web
+    name: church-program-pro-server
+    env: node
+    buildCommand: cd server && npm ci && npm run build
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: church-program-pro-db
+          property: connectionString
+
+databases:
+  - name: church-program-pro-db
+    databaseName: church_program_pro
+    user: church_program_pro_user
