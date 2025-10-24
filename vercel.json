@@ -2,5 +2,6 @@
   "version": 2,
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
-  "installCommand": "npm run install:all"
+  "installCommand": "npm run install:all",
+  "devDependencies": true
 }
