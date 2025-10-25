@@ -1,0 +1,27 @@
+# Ignore server files for frontend-only deployment
+server/
+node_modules/
+*.log
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore development files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore build artifacts
+dist/
+build/
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore documentation
+*.md
+docs/
