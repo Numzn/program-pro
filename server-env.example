@@ -1,0 +1,4 @@
+DATABASE_URL=sqlite:./dev.db
+JWT_SECRET=church-program-pro-2025-super-secure-jwt-key-numz0099
+NODE_ENV=development
+PORT=8000
