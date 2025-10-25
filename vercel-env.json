@@ -1,6 +1,0 @@
-{
-  "DATABASE_URL": "postgresql://postgres:Numz0099@db.lacdwyklyxekrxhmyesk.supabase.co:5432/postgres",
-  "JWT_SECRET": "church-program-pro-2025-super-secure-jwt-key-numz0099",
-  "NODE_ENV": "production",
-  "PORT": "8000"
-}

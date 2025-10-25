@@ -92,3 +92,13 @@ temp/
 # OS generated files
 Thumbs.db
 .vercel
+
+# Vercel environment config (contains sensitive data)
+vercel-env.json
+
+# Development databases
+server/dev.db
+server/*.db
+
+# PWA dev files
+client/dev-dist/
