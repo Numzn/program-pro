@@ -1,0 +1,2 @@
+# Backend API URL (for production, set this to your Cyclic backend URL)
+VITE_API_URL=https://your-backend.cyclic.app/api

@@ -6,7 +6,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: '/api',
+      baseURL: (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api',
       withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
