@@ -63,14 +63,24 @@ class DatabaseConnection {
     
     if (databaseUrl.includes('postgres')) {
       // PostgreSQL connection
+      console.log('🔗 Connecting to PostgreSQL database...')
+      console.log('🔗 Database URL:', databaseUrl.replace(/:[^:@]+@/, ':***@')) // Hide password
+      
       this.db = new Pool({
         connectionString: databaseUrl,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        ssl: process.env.NODE_ENV === 'production' ? { 
+          rejectUnauthorized: false,
+          sslmode: 'require'
+        } : false,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
       })
       
       // Test the connection
       try {
         const client = await this.db.connect()
+        await client.query('SELECT NOW()')
         client.release()
         console.log('✅ PostgreSQL database connected successfully')
       } catch (error) {
@@ -138,8 +148,16 @@ class DatabaseConnection {
     if (connection instanceof Pool) {
       const client = await connection.connect()
       try {
+        console.log('🔍 Executing SQL:', sql.substring(0, 100) + '...')
+        console.log('🔍 With params:', params)
         const result = await client.query(sql, params)
+        console.log('✅ SQL executed successfully')
         return result
+      } catch (error) {
+        console.error('❌ SQL execution failed:', error)
+        console.error('❌ SQL:', sql)
+        console.error('❌ Params:', params)
+        throw error
       } finally {
         client.release()
       }

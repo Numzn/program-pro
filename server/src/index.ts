@@ -60,7 +60,7 @@ app.get('/health', (_req, res) => {
   })
 })
 
-// Simple migration endpoint - just create essential tables
+// Ultra-simple migration endpoint - minimal database setup
 app.post('/api/migrate', async (req, res) => {
   // Set timeout to prevent hanging
   const timeout = setTimeout(() => {
@@ -72,12 +72,18 @@ app.post('/api/migrate', async (req, res) => {
   }, 30000) // 30 second timeout
 
   try {
-    console.log('🔄 Starting simple database migration...')
+    console.log('🔄 Starting ultra-simple database migration...')
     
     const db = DatabaseConnection.getInstance()
     await db.connect()
     
-    // Create churches table
+    // Test basic connection first
+    console.log('🔍 Testing database connection...')
+    await db.run('SELECT 1 as test')
+    console.log('✅ Database connection test passed')
+    
+    // Create churches table (simplified)
+    console.log('🔍 Creating churches table...')
     await db.run(`
       CREATE TABLE IF NOT EXISTS churches (
         id SERIAL PRIMARY KEY,
@@ -91,7 +97,8 @@ app.post('/api/migrate', async (req, res) => {
     `)
     console.log('✅ Churches table created')
     
-    // Create users table
+    // Create users table (simplified)
+    console.log('🔍 Creating users table...')
     await db.run(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -99,13 +106,14 @@ app.post('/api/migrate', async (req, res) => {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'USER',
-        church_id INTEGER REFERENCES churches(id),
+        church_id INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `)
     console.log('✅ Users table created')
     
-    // Create programs table
+    // Create programs table (simplified)
+    console.log('🔍 Creating programs table...')
     await db.run(`
       CREATE TABLE IF NOT EXISTS programs (
         id SERIAL PRIMARY KEY,
@@ -114,36 +122,41 @@ app.post('/api/migrate', async (req, res) => {
         date DATE NOT NULL,
         time TIME,
         location TEXT,
-        church_id INTEGER REFERENCES churches(id),
+        church_id INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `)
     console.log('✅ Programs table created')
     
-    // Insert default church if it doesn't exist
+    // Insert default church (simplified - no parameters)
+    console.log('🔍 Checking for default church...')
     const existingChurch = await db.get('SELECT id FROM churches WHERE slug = $1', ['grace-community-church'])
     if (!existingChurch) {
+      console.log('🔍 Creating default church...')
       await db.run(`
         INSERT INTO churches (name, short_name, slug, description) 
-        VALUES ($1, $2, $3, $4)
-      `, ['Grace Community Church', 'Grace Church', 'grace-community-church', 'A welcoming community church'])
+        VALUES ('Grace Community Church', 'Grace Church', 'grace-community-church', 'A welcoming community church')
+      `)
       console.log('✅ Default church created')
+    } else {
+      console.log('✅ Default church already exists')
     }
     
     clearTimeout(timeout)
     res.json({
       success: true,
-      message: 'Simple migration completed successfully',
+      message: 'Ultra-simple migration completed successfully',
       tablesCreated: ['churches', 'users', 'programs']
     })
     
   } catch (error) {
     clearTimeout(timeout)
-    console.error('❌ Simple migration failed:', error)
+    console.error('❌ Ultra-simple migration failed:', error)
     res.status(500).json({
       success: false,
       error: 'Migration failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     })
   }
 })
