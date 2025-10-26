@@ -11,6 +11,7 @@ import authRoutes from './api/auth'
 import programRoutes from './api/programs'
 import templateRoutes from './api/templates'
 import churchRoutes from './api/church'
+import migrateRoutes from './api/migrate'
 
 dotenv.config()
 
@@ -62,6 +63,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/programs', programRoutes)
 app.use('/api/templates', templateRoutes)
 app.use('/api/church', churchRoutes)
+app.use('/api/migrate', migrateRoutes)
 
 app.use(notFound)
 app.use(errorHandler)
