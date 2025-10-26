@@ -28,7 +28,7 @@ router.post('/migrate', async (req: Request, res: Response) => {
     for (const statement of statements) {
       if (statement.trim()) {
         console.log(`Executing: ${statement.substring(0, 50)}...`)
-        await db.query(statement)
+        await db.run(statement)
       }
     }
     
