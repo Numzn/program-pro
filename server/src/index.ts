@@ -60,59 +60,79 @@ app.get('/health', (_req, res) => {
   })
 })
 
-// Migration endpoint - direct implementation
+// Simple migration endpoint - just create essential tables
 app.post('/api/migrate', async (req, res) => {
   try {
-    console.log('🔄 Starting database migration...')
+    console.log('🔄 Starting simple database migration...')
     
     const db = DatabaseConnection.getInstance()
     await db.connect()
     
-    // Read PostgreSQL schema
-    const schemaPath = join(__dirname, 'database/schema-postgres.sql')
-    console.log('📁 Schema path:', schemaPath)
+    // Create churches table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS churches (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        short_name TEXT,
+        slug TEXT UNIQUE NOT NULL,
+        description TEXT,
+        theme_config TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    console.log('✅ Churches table created')
     
-    const schema = readFileSync(schemaPath, 'utf8')
-    console.log('📄 Schema loaded, length:', schema.length)
+    // Create users table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'USER',
+        church_id INTEGER REFERENCES churches(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    console.log('✅ Users table created')
     
-    // Split by semicolon and execute each statement
-    const statements = schema
-      .split(';')
-      .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'))
+    // Create programs table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS programs (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        date DATE NOT NULL,
+        time TIME,
+        location TEXT,
+        church_id INTEGER REFERENCES churches(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    console.log('✅ Programs table created')
     
-    console.log(`📝 Executing ${statements.length} SQL statements...`)
-    
-    for (let i = 0; i < statements.length; i++) {
-      const statement = statements[i]
-      if (statement.trim()) {
-        console.log(`Executing statement ${i + 1}/${statements.length}: ${statement.substring(0, 50)}...`)
-        try {
-          await db.run(statement)
-          console.log(`✅ Statement ${i + 1} executed successfully`)
-        } catch (stmtError) {
-          console.error(`❌ Error in statement ${i + 1}:`, stmtError)
-          console.error(`Statement: ${statement}`)
-          throw stmtError
-        }
-      }
+    // Insert default church if it doesn't exist
+    const existingChurch = await db.get('SELECT id FROM churches WHERE slug = $1', ['grace-community-church'])
+    if (!existingChurch) {
+      await db.run(`
+        INSERT INTO churches (name, short_name, slug, description) 
+        VALUES ($1, $2, $3, $4)
+      `, ['Grace Community Church', 'Grace Church', 'grace-community-church', 'A welcoming community church'])
+      console.log('✅ Default church created')
     }
-    
-    console.log('✅ Database migration completed successfully!')
     
     res.json({
       success: true,
-      message: 'Database migration completed successfully',
-      statementsExecuted: statements.length
+      message: 'Simple migration completed successfully',
+      tablesCreated: ['churches', 'users', 'programs']
     })
     
   } catch (error) {
-    console.error('❌ Migration failed:', error)
+    console.error('❌ Simple migration failed:', error)
     res.status(500).json({
       success: false,
       error: 'Migration failed',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      details: error instanceof Error ? error.message : 'Unknown error'
     })
   }
 })
