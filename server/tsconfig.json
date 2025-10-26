@@ -19,6 +19,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "baseUrl": ".",
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"],
     "paths": {
       "@/*": ["./src/*"]
     }
