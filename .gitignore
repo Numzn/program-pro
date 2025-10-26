@@ -102,3 +102,9 @@ server/*.db
 
 # PWA dev files
 client/dev-dist/
+
+# Deployment-specific ignores
+server/dist/
+server/.env
+client/.env
+client/.env.local
