@@ -62,6 +62,15 @@ app.get('/health', (_req, res) => {
 
 // Simple migration endpoint - just create essential tables
 app.post('/api/migrate', async (req, res) => {
+  // Set timeout to prevent hanging
+  const timeout = setTimeout(() => {
+    res.status(408).json({
+      success: false,
+      error: 'Migration timeout',
+      message: 'Migration took too long to complete'
+    })
+  }, 30000) // 30 second timeout
+
   try {
     console.log('🔄 Starting simple database migration...')
     
@@ -121,6 +130,7 @@ app.post('/api/migrate', async (req, res) => {
       console.log('✅ Default church created')
     }
     
+    clearTimeout(timeout)
     res.json({
       success: true,
       message: 'Simple migration completed successfully',
@@ -128,6 +138,7 @@ app.post('/api/migrate', async (req, res) => {
     })
     
   } catch (error) {
+    clearTimeout(timeout)
     console.error('❌ Simple migration failed:', error)
     res.status(500).json({
       success: false,
@@ -140,6 +151,15 @@ app.post('/api/migrate', async (req, res) => {
 // Test endpoint
 app.get('/api/migrate/test', (req, res) => {
   res.json({ message: 'Migration router is working!' })
+})
+
+// Minimal test endpoint - no database
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    message: 'Backend is running',
+    timestamp: new Date().toISOString()
+  })
 })
 
 app.use('/api/auth', authRoutes)
