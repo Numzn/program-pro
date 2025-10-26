@@ -5,6 +5,11 @@ import DatabaseConnection from '../database/connection'
 
 const router = Router()
 
+// Test endpoint to verify router is working
+router.get('/test', (req: Request, res: Response) => {
+  res.json({ message: 'Migration router is working!' })
+})
+
 // Migration endpoint - only for development/setup
 router.post('/migrate', async (req: Request, res: Response) => {
   try {
@@ -14,7 +19,7 @@ router.post('/migrate', async (req: Request, res: Response) => {
     await db.connect()
     
     // Read PostgreSQL schema
-    const schemaPath = join(process.cwd(), 'src/database/schema-postgres.sql')
+    const schemaPath = join(__dirname, '../database/schema-postgres.sql')
     const schema = readFileSync(schemaPath, 'utf8')
     
     // Split by semicolon and execute each statement
