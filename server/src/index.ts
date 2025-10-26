@@ -40,7 +40,7 @@ app.use(limiter)
 
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com']
+    ? ['https://program-pro.onrender.com', 'https://dashboard.render.com', '*']
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -70,7 +70,10 @@ app.post('/api/migrate', async (req, res) => {
     
     // Read PostgreSQL schema
     const schemaPath = join(__dirname, 'database/schema-postgres.sql')
+    console.log('📁 Schema path:', schemaPath)
+    
     const schema = readFileSync(schemaPath, 'utf8')
+    console.log('📄 Schema loaded, length:', schema.length)
     
     // Split by semicolon and execute each statement
     const statements = schema
@@ -80,10 +83,18 @@ app.post('/api/migrate', async (req, res) => {
     
     console.log(`📝 Executing ${statements.length} SQL statements...`)
     
-    for (const statement of statements) {
+    for (let i = 0; i < statements.length; i++) {
+      const statement = statements[i]
       if (statement.trim()) {
-        console.log(`Executing: ${statement.substring(0, 50)}...`)
-        await db.run(statement)
+        console.log(`Executing statement ${i + 1}/${statements.length}: ${statement.substring(0, 50)}...`)
+        try {
+          await db.run(statement)
+          console.log(`✅ Statement ${i + 1} executed successfully`)
+        } catch (stmtError) {
+          console.error(`❌ Error in statement ${i + 1}:`, stmtError)
+          console.error(`Statement: ${statement}`)
+          throw stmtError
+        }
       }
     }
     
@@ -100,7 +111,8 @@ app.post('/api/migrate', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Migration failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     })
   }
 })
