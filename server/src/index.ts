@@ -16,7 +16,7 @@ import migrateRoutes from './api/migrate'
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 8000
+const PORT = process.env.PORT || 10000
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -70,10 +70,14 @@ app.use(errorHandler)
 
 async function startServer() {
   try {
+    console.log('🔄 Starting server...')
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
+    console.log(`🔗 Port: ${PORT}`)
+    
     const db = DatabaseConnection.getInstance()
     await db.connect()
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`)
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
       console.log(`🔗 Health check: http://localhost:${PORT}/health`)
