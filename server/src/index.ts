@@ -60,98 +60,293 @@ app.get('/health', (_req, res) => {
   })
 })
 
-// Ultra-simple migration endpoint - minimal database setup
+// Database initialization endpoint
 app.post('/api/migrate', async (req, res) => {
-  // Set timeout to prevent hanging
   const timeout = setTimeout(() => {
     res.status(408).json({
       success: false,
       error: 'Migration timeout',
       message: 'Migration took too long to complete'
     })
-  }, 30000) // 30 second timeout
+  }, 30000)
 
   try {
-    console.log('🔄 Starting ultra-simple database migration...')
+    console.log('🔄 Starting database migration...')
     
     const db = DatabaseConnection.getInstance()
     await db.connect()
     
-    // Test basic connection first
+    // Test connection
     console.log('🔍 Testing database connection...')
     await db.run('SELECT 1 as test')
     console.log('✅ Database connection test passed')
     
-    // Create churches table (simplified)
+    const isPostgres = process.env.DATABASE_URL?.includes('postgres')
+    
+    // Create churches table
     console.log('🔍 Creating churches table...')
-    await db.run(`
-      CREATE TABLE IF NOT EXISTS churches (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        short_name TEXT,
-        slug TEXT UNIQUE NOT NULL,
-        description TEXT,
-        theme_config TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
+    if (isPostgres) {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS churches (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          short_name TEXT,
+          slug TEXT UNIQUE NOT NULL,
+          description TEXT,
+          theme_config TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `)
+    } else {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS churches (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          short_name TEXT,
+          slug TEXT UNIQUE NOT NULL,
+          description TEXT,
+          theme_config TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `)
+    }
     console.log('✅ Churches table created')
     
-    // Create users table (simplified)
+    // Create users table
     console.log('🔍 Creating users table...')
-    await db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'USER',
-        church_id INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
+    if (isPostgres) {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          username TEXT UNIQUE NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'CONGREGATION',
+          church_id INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE
+        )
+      `)
+    } else {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'CONGREGATION',
+          church_id INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE
+        )
+      `)
+    }
     console.log('✅ Users table created')
     
-    // Create programs table (simplified)
+    // Create programs table
     console.log('🔍 Creating programs table...')
-    await db.run(`
-      CREATE TABLE IF NOT EXISTS programs (
-        id SERIAL PRIMARY KEY,
-        title TEXT NOT NULL,
-        description TEXT,
-        date DATE NOT NULL,
-        time TIME,
-        location TEXT,
-        church_id INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
+    if (isPostgres) {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS programs (
+          id SERIAL PRIMARY KEY,
+          church_id INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          date DATE NOT NULL,
+          theme TEXT,
+          is_active BOOLEAN DEFAULT true,
+          created_by INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `)
+    } else {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS programs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          church_id INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          date DATE NOT NULL,
+          theme TEXT,
+          is_active BOOLEAN DEFAULT 1,
+          created_by INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `)
+    }
     console.log('✅ Programs table created')
     
-    // Insert default church (simplified - no parameters)
+    // Create schedule_items table
+    console.log('🔍 Creating schedule_items table...')
+    if (isPostgres) {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS schedule_items (
+          id SERIAL PRIMARY KEY,
+          program_id INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          description TEXT,
+          start_time TIME,
+          order_index INTEGER NOT NULL DEFAULT 0,
+          type TEXT NOT NULL DEFAULT 'worship',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+        )
+      `)
+    } else {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS schedule_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          program_id INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          description TEXT,
+          start_time TIME,
+          order_index INTEGER NOT NULL DEFAULT 0,
+          type TEXT NOT NULL DEFAULT 'worship',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+        )
+      `)
+    }
+    console.log('✅ Schedule items table created')
+    
+    // Create special_guests table
+    console.log('🔍 Creating special_guests table...')
+    if (isPostgres) {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS special_guests (
+          id SERIAL PRIMARY KEY,
+          program_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          role TEXT,
+          bio TEXT,
+          photo_url TEXT,
+          display_order INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+        )
+      `)
+    } else {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS special_guests (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          program_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          role TEXT,
+          bio TEXT,
+          photo_url TEXT,
+          display_order INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+        )
+      `)
+    }
+    console.log('✅ Special guests table created')
+    
+    // Create program_templates table
+    console.log('🔍 Creating program_templates table...')
+    if (isPostgres) {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS program_templates (
+          id SERIAL PRIMARY KEY,
+          church_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          template_data TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE
+        )
+      `)
+    } else {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS program_templates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          church_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          template_data TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE
+        )
+      `)
+    }
+    console.log('✅ Program templates table created')
+    
+    // Insert default church
     console.log('🔍 Checking for default church...')
-    const existingChurch = await db.get('SELECT id FROM churches WHERE slug = $1', ['grace-community-church'])
+    const existingChurch = await db.get(
+      isPostgres 
+        ? 'SELECT id FROM churches WHERE slug = $1' 
+        : 'SELECT id FROM churches WHERE slug = ?', 
+      ['grace-community-church']
+    )
+    
     if (!existingChurch) {
       console.log('🔍 Creating default church...')
-      await db.run(`
-        INSERT INTO churches (name, short_name, slug, description) 
-        VALUES ('Grace Community Church', 'Grace Church', 'grace-community-church', 'A welcoming community church')
-      `)
+      if (isPostgres) {
+        await db.run(`
+          INSERT INTO churches (name, short_name, slug, description) 
+          VALUES ($1, $2, $3, $4)
+        `, ['Grace Community Church', 'Grace Church', 'grace-community-church', 'A welcoming community church'])
+      } else {
+        await db.run(`
+          INSERT INTO churches (name, short_name, slug, description) 
+          VALUES (?, ?, ?, ?)
+        `, ['Grace Community Church', 'Grace Church', 'grace-community-church', 'A welcoming community church'])
+      }
       console.log('✅ Default church created')
     } else {
       console.log('✅ Default church already exists')
     }
     
+    // Insert default admin user
+    console.log('🔍 Checking for default admin user...')
+    const existingUser = await db.get(
+      isPostgres 
+        ? 'SELECT id FROM users WHERE username = $1' 
+        : 'SELECT id FROM users WHERE username = ?', 
+      ['admin']
+    )
+    
+    if (!existingUser) {
+      console.log('🔍 Creating default admin user...')
+      const bcrypt = require('bcrypt')
+      const hashedPassword = await bcrypt.hash('password', 10)
+      
+      if (isPostgres) {
+        await db.run(`
+          INSERT INTO users (username, email, password_hash, role, church_id) 
+          VALUES ($1, $2, $3, $4, $5)
+        `, ['admin', 'admin@gracecommunity.com', hashedPassword, 'ADMIN', 1])
+      } else {
+        await db.run(`
+          INSERT INTO users (username, email, password_hash, role, church_id) 
+          VALUES (?, ?, ?, ?, ?)
+        `, ['admin', 'admin@gracecommunity.com', hashedPassword, 'ADMIN', 1])
+      }
+      console.log('✅ Default admin user created')
+    } else {
+      console.log('✅ Default admin user already exists')
+    }
+    
     clearTimeout(timeout)
     res.json({
       success: true,
-      message: 'Ultra-simple migration completed successfully',
-      tablesCreated: ['churches', 'users', 'programs']
+      message: 'Database migration completed successfully',
+      tablesCreated: ['churches', 'users', 'programs', 'schedule_items', 'special_guests', 'program_templates'],
+      defaultData: {
+        church: 'Grace Community Church',
+        adminUser: 'admin',
+        adminPassword: 'password'
+      }
     })
     
   } catch (error) {
     clearTimeout(timeout)
-    console.error('❌ Ultra-simple migration failed:', error)
+    console.error('❌ Migration failed:', error)
     res.status(500).json({
       success: false,
       error: 'Migration failed',
