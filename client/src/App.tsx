@@ -1,18 +1,18 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
-// Import all page components using absolute paths for Render build
-import HomePage from '@/pages/public/HomePage'
-import ProgramViewPage from '@/pages/public/ProgramViewPage'
-import AdminLoginPage from '@/pages/admin/AdminLoginPage'
-import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
-import AdminProgramsPage from '@/pages/admin/AdminProgramsPage'
-import AdminProgramEditorPage from '@/pages/admin/AdminProgramEditorPage'
-import AdminBulkImportPage from '@/pages/admin/AdminBulkImportPage'
-import AdminChurchSettingsPage from '@/pages/admin/AdminChurchSettingsPage'
+// Import all page components using standard relative paths for Render build
+import HomePage from './pages/public/HomePage'
+import ProgramViewPage from './pages/public/ProgramViewPage'
+import AdminLoginPage from './pages/admin/AdminLoginPage'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
+import AdminProgramsPage from './pages/admin/AdminProgramsPage'
+import AdminProgramEditorPage from './pages/admin/AdminProgramEditorPage'
+import AdminBulkImportPage from './pages/admin/AdminBulkImportPage'
+import AdminChurchSettingsPage from './pages/admin/AdminChurchSettingsPage'
 
-import ProtectedRoute from '@/components/ProtectedRoute'
-import Layout from '@/components/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
+import Layout from './components/Layout'
 
 function App() {
   return (
