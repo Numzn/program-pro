@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+// Vite configuration for Church Program Pro - Render deployment ready
 export default defineConfig({
   plugins: [
     react(),

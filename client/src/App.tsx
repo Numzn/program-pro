@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
+// Import all page components with explicit .tsx extensions for Render build
 import HomePage from './pages/public/HomePage.tsx'
 import ProgramViewPage from './pages/public/ProgramViewPage.tsx'
 import AdminLoginPage from './pages/admin/AdminLoginPage.tsx'
