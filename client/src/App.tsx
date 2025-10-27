@@ -1,18 +1,18 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
-// Import all page components with explicit .tsx extensions for Render build
-import HomePage from './pages/public/HomePage.tsx'
-import ProgramViewPage from './pages/public/ProgramViewPage.tsx'
-import AdminLoginPage from './pages/admin/AdminLoginPage.tsx'
-import AdminDashboardPage from './pages/admin/AdminDashboardPage.tsx'
-import AdminProgramsPage from './pages/admin/AdminProgramsPage.tsx'
-import AdminProgramEditorPage from './pages/admin/AdminProgramEditorPage.tsx'
-import AdminBulkImportPage from './pages/admin/AdminBulkImportPage.tsx'
-import AdminChurchSettingsPage from './pages/admin/AdminChurchSettingsPage.tsx'
+// Import all page components using absolute paths for Render build
+import HomePage from '@/pages/public/HomePage'
+import ProgramViewPage from '@/pages/public/ProgramViewPage'
+import AdminLoginPage from '@/pages/admin/AdminLoginPage'
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
+import AdminProgramsPage from '@/pages/admin/AdminProgramsPage'
+import AdminProgramEditorPage from '@/pages/admin/AdminProgramEditorPage'
+import AdminBulkImportPage from '@/pages/admin/AdminBulkImportPage'
+import AdminChurchSettingsPage from '@/pages/admin/AdminChurchSettingsPage'
 
-import ProtectedRoute from './components/ProtectedRoute.tsx'
-import Layout from './components/Layout.tsx'
+import ProtectedRoute from '@/components/ProtectedRoute'
+import Layout from '@/components/Layout'
 
 function App() {
   return (
