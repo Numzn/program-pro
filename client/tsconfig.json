@@ -18,6 +18,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
+    "types": ["node", "react", "react-dom"],
+    "typeRoots": ["./node_modules/@types"],
     "paths": {
       "@/*": ["./src/*"]
     }
