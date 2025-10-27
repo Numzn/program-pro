@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
 // Import all page components using standard relative paths for Render build
+// Force redeployment with correct API URL configuration
 import HomePage from './pages/public/HomePage'
 import ProgramViewPage from './pages/public/ProgramViewPage'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
