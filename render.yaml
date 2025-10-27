@@ -7,10 +7,10 @@ services:
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://church-program-pro-server.onrender.com/api/*
+        destination: https://program-pro.onrender.com/api/*
     envVars:
       - key: VITE_API_URL
-        value: https://church-program-pro-server.onrender.com/api
+        value: https://program-pro.onrender.com/api
 
   - type: web
     name: church-program-pro-server
