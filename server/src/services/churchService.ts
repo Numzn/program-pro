@@ -18,6 +18,7 @@ export interface ChurchSettings {
 }
 
 export class ChurchService {
+  // Force TypeScript rebuild
   private db = DatabaseConnection.getInstance()
 
   async getChurchById(id: number): Promise<Church | null> {
