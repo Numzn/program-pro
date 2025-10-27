@@ -5,8 +5,11 @@ class ApiService {
   private api: AxiosInstance
 
   constructor() {
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api'
+    console.log('🌐 API Service initialized with URL:', apiUrl)
+    
     this.api = axios.create({
-      baseURL: (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api',
+      baseURL: apiUrl,
       withCredentials: true,
       headers: {
         'Content-Type': 'application/json',

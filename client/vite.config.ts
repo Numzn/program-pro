@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 // Vite configuration for Church Program Pro - Render deployment ready
+// FORCE REDEPLOYMENT: Clear all caches and rebuild with correct API URL
 export default defineConfig({
   plugins: [
     react(),
