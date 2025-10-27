@@ -9,15 +9,15 @@ import { formatDate, isToday } from '../../utils/date'
 
 const HomePage: React.FC = () => {
   const { programs, isLoading, fetchPrograms } = useProgramStore()
-  const { church, fetchChurchSettings } = useChurchStore()
+  const { church, fetchChurchInfo } = useChurchStore()
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showInstallButton, setShowInstallButton] = useState(false)
 
   useEffect(() => {
     // Fetch all active programs
     fetchPrograms(undefined, true)
-    // Fetch church settings
-    fetchChurchSettings()
+    // Fetch church info (public endpoint)
+    fetchChurchInfo()
 
     // Listen for PWA install prompt
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -31,7 +31,7 @@ const HomePage: React.FC = () => {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     }
-  }, [fetchPrograms, fetchChurchSettings])
+  }, [fetchPrograms, fetchChurchInfo])
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return

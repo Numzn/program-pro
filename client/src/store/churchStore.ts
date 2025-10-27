@@ -18,6 +18,7 @@ interface ChurchStore {
   
   // Actions
   fetchChurchSettings: () => Promise<void>
+  fetchChurchInfo: () => Promise<void> // Public method for homepage
   updateChurchSettings: (settings: {
     name: string
     short_name?: string
@@ -36,6 +37,17 @@ export const useChurchStore = create<ChurchStore>((set) => ({
     set({ isLoading: true, error: null })
     try {
       const church = await apiService.getChurchSettings()
+      set({ church, isLoading: false })
+    } catch (error: any) {
+      set({ isLoading: false, error: error.message })
+      throw error
+    }
+  },
+
+  fetchChurchInfo: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const church = await apiService.getChurchInfo()
       set({ church, isLoading: false })
     } catch (error: any) {
       set({ isLoading: false, error: error.message })

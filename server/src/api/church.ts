@@ -17,7 +17,35 @@ const churchSettingsSchema = z.object({
   })
 })
 
-// Get church settings
+// Get public church info (no auth required)
+router.get('/info', 
+  asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const church = await churchService.getDefaultChurch()
+      
+      if (!church) {
+        res.status(404).json({ 
+          success: false,
+          error: 'Church not found' 
+        })
+        return
+      }
+
+      res.json({
+        success: true,
+        data: church
+      })
+    } catch (error: any) {
+      console.error('Error fetching church info:', error)
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to fetch church information' 
+      })
+    }
+  })
+)
+
+// Get church settings (authenticated)
 router.get('/settings', 
   authenticate,
   authorize(['EDITOR', 'ADMIN']),

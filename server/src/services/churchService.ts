@@ -34,6 +34,20 @@ export class ChurchService {
     }
   }
 
+  async getDefaultChurch(): Promise<Church | null> {
+    const connection = this.db.getConnection()
+
+    if (process.env.DATABASE_URL?.includes('postgres')) {
+      const client = await (connection as any).connect()
+      const result = await client.query('SELECT * FROM churches ORDER BY id ASC LIMIT 1')
+      client.release()
+      return result.rows[0] || null
+    } else {
+      const stmt = (connection as any).prepare('SELECT * FROM churches ORDER BY id ASC LIMIT 1')
+      return await stmt.get()
+    }
+  }
+
   async updateChurchSettings(id: number, settings: ChurchSettings): Promise<Church> {
     const connection = this.db.getConnection()
 

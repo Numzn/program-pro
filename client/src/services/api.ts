@@ -202,6 +202,16 @@ class ApiService {
     throw new Error(response.data.error || 'Failed to fetch church settings')
   }
 
+  // Public church info (no auth required)
+  async getChurchInfo(): Promise<any> {
+    const response = await this.api.get<ApiResponse<any>>('/church/info')
+    
+    if (response.data.success && response.data.data) {
+      return response.data.data
+    }
+    throw new Error(response.data.error || 'Failed to fetch church information')
+  }
+
   async updateChurchSettings(settings: {
     name: string
     short_name?: string
