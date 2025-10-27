@@ -26,7 +26,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "http://localhost:5000", "http://localhost:3000", "http://localhost:8000", "ws://localhost:3000", "ws://localhost:5173"],
+      connectSrc: ["'self'", "http://localhost:5000", "http://localhost:3000", "http://localhost:8000", "ws://localhost:3000", "ws://localhost:5173", "https://program-pro-1.onrender.com", "https://church-program-pro-client.onrender.com"],
     },
   },
 }))
@@ -40,7 +40,7 @@ app.use(limiter)
 
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://program-pro.onrender.com', 'https://dashboard.render.com', '*']
+    ? ['https://program-pro-1.onrender.com', 'https://church-program-pro-client.onrender.com', 'https://program-pro.onrender.com', 'https://dashboard.render.com']
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
