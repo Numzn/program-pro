@@ -69,8 +69,7 @@ class DatabaseConnection {
       this.db = new Pool({
         connectionString: databaseUrl,
         ssl: process.env.NODE_ENV === 'production' ? { 
-          rejectUnauthorized: false,
-          sslmode: 'require'
+          rejectUnauthorized: false
         } : false,
         max: 20,
         idleTimeoutMillis: 30000,
