@@ -386,6 +386,243 @@ async function startServer() {
     
     const db = DatabaseConnection.getInstance()
     await db.connect()
+    
+    // Run automatic database migration
+    console.log('🔄 Running automatic database migration...')
+    try {
+      const isPostgres = process.env.DATABASE_URL?.includes('postgres')
+      
+      // Create churches table
+      if (isPostgres) {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS churches (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            short_name TEXT,
+            slug TEXT UNIQUE NOT NULL,
+            description TEXT,
+            theme_config TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `)
+      } else {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS churches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            short_name TEXT,
+            slug TEXT UNIQUE NOT NULL,
+            description TEXT,
+            theme_config TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `)
+      }
+      
+      // Create users table
+      if (isPostgres) {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'CONGREGATION',
+            church_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE
+          )
+        `)
+      } else {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'CONGREGATION',
+            church_id INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE
+          )
+        `)
+      }
+      
+      // Create programs table
+      if (isPostgres) {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS programs (
+            id SERIAL PRIMARY KEY,
+            church_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            date DATE NOT NULL,
+            theme TEXT,
+            is_active BOOLEAN DEFAULT true,
+            created_by INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+          )
+        `)
+      } else {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS programs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            church_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            date DATE NOT NULL,
+            theme TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            created_by INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+          )
+        `)
+      }
+      
+      // Create schedule_items table
+      if (isPostgres) {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS schedule_items (
+            id SERIAL PRIMARY KEY,
+            program_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            start_time TIME,
+            order_index INTEGER NOT NULL DEFAULT 0,
+            type TEXT NOT NULL DEFAULT 'worship',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+          )
+        `)
+      } else {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS schedule_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            program_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            start_time TIME,
+            order_index INTEGER NOT NULL DEFAULT 0,
+            type TEXT NOT NULL DEFAULT 'worship',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+          )
+        `)
+      }
+      
+      // Create special_guests table
+      if (isPostgres) {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS special_guests (
+            id SERIAL PRIMARY KEY,
+            program_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            role TEXT,
+            bio TEXT,
+            photo_url TEXT,
+            display_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+          )
+        `)
+      } else {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS special_guests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            program_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            role TEXT,
+            bio TEXT,
+            photo_url TEXT,
+            display_order INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+          )
+        `)
+      }
+      
+      // Create program_templates table
+      if (isPostgres) {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS program_templates (
+            id SERIAL PRIMARY KEY,
+            church_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            template_data TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE
+          )
+        `)
+      } else {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS program_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            church_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            template_data TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (church_id) REFERENCES churches(id) ON DELETE CASCADE
+          )
+        `)
+      }
+      
+      // Insert default church
+      const existingChurch = await db.get(
+        isPostgres 
+          ? 'SELECT id FROM churches WHERE slug = $1' 
+          : 'SELECT id FROM churches WHERE slug = ?', 
+        ['grace-community-church']
+      )
+      
+      if (!existingChurch) {
+        if (isPostgres) {
+          await db.run(`
+            INSERT INTO churches (name, short_name, slug, description) 
+            VALUES ($1, $2, $3, $4)
+          `, ['Grace Community Church', 'Grace Church', 'grace-community-church', 'A welcoming community church'])
+        } else {
+          await db.run(`
+            INSERT INTO churches (name, short_name, slug, description) 
+            VALUES (?, ?, ?, ?)
+          `, ['Grace Community Church', 'Grace Church', 'grace-community-church', 'A welcoming community church'])
+        }
+      }
+      
+      // Insert default admin user
+      const existingUser = await db.get(
+        isPostgres 
+          ? 'SELECT id FROM users WHERE username = $1' 
+          : 'SELECT id FROM users WHERE username = ?', 
+        ['admin']
+      )
+      
+      if (!existingUser) {
+        const bcrypt = require('bcrypt')
+        const hashedPassword = await bcrypt.hash('password', 10)
+        
+        if (isPostgres) {
+          await db.run(`
+            INSERT INTO users (username, email, password_hash, role, church_id) 
+            VALUES ($1, $2, $3, $4, $5)
+          `, ['admin', 'admin@gracecommunity.com', hashedPassword, 'ADMIN', 1])
+        } else {
+          await db.run(`
+            INSERT INTO users (username, email, password_hash, role, church_id) 
+            VALUES (?, ?, ?, ?, ?)
+          `, ['admin', 'admin@gracecommunity.com', hashedPassword, 'ADMIN', 1])
+        }
+      }
+      
+      console.log('✅ Database migration completed successfully')
+    } catch (error) {
+      console.error('❌ Database migration failed:', error)
+    }
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`)
