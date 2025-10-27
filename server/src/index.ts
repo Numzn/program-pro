@@ -370,6 +370,23 @@ app.get('/api/test', (req, res) => {
   })
 })
 
+// Root API endpoint - provide API information
+app.get('/api', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'Church Program Pro API',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      programs: '/api/programs',
+      templates: '/api/templates',
+      church: '/api/church',
+      health: '/health'
+    },
+    documentation: 'Visit /api/auth, /api/programs, etc. for specific endpoints'
+  })
+})
+
 app.use('/api/auth', authRoutes)
 app.use('/api/programs', programRoutes)
 app.use('/api/templates', templateRoutes)
