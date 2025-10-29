@@ -8,9 +8,6 @@ services:
       - type: rewrite
         source: /api/*
         destination: https://program-pro.onrender.com/api/*
-    envVars:
-      - key: VITE_API_URL
-        value: https://program-pro.onrender.com/api
 
   - type: web
     name: program-pro
