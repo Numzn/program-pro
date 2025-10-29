@@ -7,16 +7,22 @@ class ApiService {
   constructor() {
     // Runtime detection: Check if we're on Render production
     const isProduction = typeof window !== 'undefined' && window.location.hostname === 'program-pro-1.onrender.com'
-    const defaultApiUrl = isProduction 
-      ? 'https://program-pro.onrender.com/api'
-      : '/api'
     
-    // Use env var if available, otherwise use runtime detection
-    const apiUrl = (import.meta as any).env?.VITE_API_URL || defaultApiUrl
+    // CRITICAL: Override env var if we're on production to fix old cached builds
+    let apiUrl: string
+    if (isProduction) {
+      // Force correct URL for production, ignore potentially stale env var
+      apiUrl = 'https://program-pro.onrender.com/api'
+      console.log('🚨 PRODUCTION: Forcing correct API URL, ignoring env var')
+    } else {
+      // For local/dev, use env var or fallback to relative path (Vite proxy)
+      apiUrl = (import.meta as any).env?.VITE_API_URL || '/api'
+    }
+    
     console.log('🌐 API Service initialized with URL:', apiUrl)
     console.log('🔧 Environment VITE_API_URL:', (import.meta as any).env?.VITE_API_URL)
     console.log('🌍 Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server-side')
-    console.log('🎯 Using:', isProduction ? 'Production URL (hostname detection)' : 'Default URL')
+    console.log('🎯 Using:', isProduction ? 'Production URL (FORCED)' : 'Env var or default')
     
     this.api = axios.create({
       baseURL: apiUrl,
