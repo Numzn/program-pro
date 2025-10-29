@@ -1,7 +1,8 @@
 {
   "name": "church-program-pro-client",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "buildVersion": "2025-10-29-v2",
   "type": "module",
   "scripts": {
     "dev": "vite",
