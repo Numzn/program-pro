@@ -5,9 +5,11 @@ class ApiService {
   private api: AxiosInstance
 
   constructor() {
-    // Use relative URL - Vite proxy (dev) or Render (prod) will handle routing
+    // CRITICAL FIX: Use relative URL - Vite proxy (dev) or Render (prod) will handle routing
+    // This ensures local dev uses proxy and production uses VITE_API_URL from render.yaml
     const apiUrl = (import.meta as any).env?.VITE_API_URL || '/api'
     console.log('🌐 API Service initialized with URL:', apiUrl)
+    console.log('🔧 Environment VITE_API_URL:', (import.meta as any).env?.VITE_API_URL)
     
     this.api = axios.create({
       baseURL: apiUrl,

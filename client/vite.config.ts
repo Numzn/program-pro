@@ -7,6 +7,7 @@ import path from 'path'
 // Vite configuration for Church Program Pro - Render deployment ready
 // FORCE REDEPLOYMENT: Clear all caches and rebuild with correct API URL
 // Updated: 2025-10-29 - Add Vite proxy for local dev and fix Render API URL
+// CRITICAL FIX: Frontend still using old URL - Force complete rebuild
 export default defineConfig({
   plugins: [
     react(),
