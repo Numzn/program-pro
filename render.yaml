@@ -2,7 +2,7 @@ services:
   - type: web
     name: program-pro-client
     env: static
-    buildCommand: cd client && npm ci && npm run build
+    buildCommand: cd client && npm ci && npm run build --force
     staticPublishPath: ./client/dist
     routes:
       - type: rewrite
