@@ -394,15 +394,9 @@ app.get('/api', (_req, res) => {
   })
 })
 
-// API Routes - order matters!
-app.use('/api/auth', authRoutes)
-app.use('/api/programs', programRoutes)
-app.use('/api/templates', templateRoutes)
-app.use('/api/church', churchRoutes)
-
-// Debug middleware - log all API requests (only in development)
+// Debug middleware - log all API requests (only in development, BEFORE routes)
 if (process.env.NODE_ENV !== 'production') {
-  app.use('/api/*', (req, res, next) => {
+  app.use('/api', (req, res, next) => {
     console.log('🔍 API Request:', {
       method: req.method,
       path: req.path,
@@ -413,6 +407,12 @@ if (process.env.NODE_ENV !== 'production') {
     next()
   })
 }
+
+// API Routes - order matters!
+app.use('/api/auth', authRoutes)
+app.use('/api/programs', programRoutes)
+app.use('/api/templates', templateRoutes)
+app.use('/api/church', churchRoutes)
 
 app.use(notFound)
 app.use(errorHandler)
