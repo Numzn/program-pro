@@ -5,13 +5,18 @@ class ApiService {
   private api: AxiosInstance
 
   constructor() {
-    // CRITICAL FIX: Use relative URL - Vite proxy (dev) or Render (prod) will handle routing
-    // This ensures local dev uses proxy and production uses VITE_API_URL from render.yaml
-    // FORCE REBUILD: 2025-10-29 - Frontend still using old URL
-    const apiUrl = (import.meta as any).env?.VITE_API_URL || '/api'
+    // Runtime detection: Check if we're on Render production
+    const isProduction = typeof window !== 'undefined' && window.location.hostname === 'program-pro-1.onrender.com'
+    const defaultApiUrl = isProduction 
+      ? 'https://program-pro.onrender.com/api'
+      : '/api'
+    
+    // Use env var if available, otherwise use runtime detection
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || defaultApiUrl
     console.log('🌐 API Service initialized with URL:', apiUrl)
     console.log('🔧 Environment VITE_API_URL:', (import.meta as any).env?.VITE_API_URL)
-    console.log('🚨 FORCE REBUILD: This should show https://program-pro.onrender.com/api')
+    console.log('🌍 Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server-side')
+    console.log('🎯 Using:', isProduction ? 'Production URL (hostname detection)' : 'Default URL')
     
     this.api = axios.create({
       baseURL: apiUrl,
