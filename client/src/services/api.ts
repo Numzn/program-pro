@@ -46,6 +46,25 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
+        // Enhanced error logging for debugging
+        if (error.response) {
+          console.error('❌ API Error Response:', {
+            status: error.response.status,
+            url: error.config?.url,
+            baseURL: error.config?.baseURL,
+            fullURL: error.config?.baseURL + error.config?.url,
+            data: error.response.data,
+            message: error.message
+          })
+        } else if (error.request) {
+          console.error('❌ API Request Error (no response):', {
+            url: error.config?.url,
+            baseURL: error.config?.baseURL,
+            fullURL: error.config?.baseURL + error.config?.url,
+            message: error.message
+          })
+        }
+        
         if (error.response?.status === 401) {
           localStorage.removeItem('token')
           localStorage.removeItem('user')
@@ -57,10 +76,12 @@ class ApiService {
   }
 
   async login(username: string, password: string): Promise<{ user: User; token: string }> {
+    console.log('🔐 Attempting login to:', this.api.defaults.baseURL + '/auth/login')
     const response = await this.api.post('/auth/login', {
       username,
       password
     })
+    console.log('✅ Login response received:', response.status)
     
     if (response.data.success && response.data.user && response.data.token) {
       localStorage.setItem('token', response.data.token)
