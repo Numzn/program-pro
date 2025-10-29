@@ -23,10 +23,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Keep for Tailwind/CSS-in-JS
+      scriptSrc: ["'self'"], // Removed unsafe-inline for security
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "http://localhost:5000", "http://localhost:3000", "http://localhost:8000", "ws://localhost:3000", "ws://localhost:5173", "https://program-pro-1.onrender.com", "https://church-program-pro-client.onrender.com"],
+      connectSrc: ["'self'", "http://localhost:3000", "http://localhost:8000", "http://localhost:5173", "ws://localhost:3000", "ws://localhost:5173", "https://program-pro-1.onrender.com", "https://program-pro.onrender.com"],
     },
   },
 }))
@@ -40,7 +40,7 @@ app.use(limiter)
 
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://program-pro-1.onrender.com', 'https://church-program-pro-client.onrender.com', 'https://program-pro.onrender.com', 'https://dashboard.render.com']
+    ? ['https://program-pro-1.onrender.com', 'https://program-pro.onrender.com']
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

@@ -108,3 +108,9 @@ server/dist/
 server/.env
 client/.env
 client/.env.local
+
+# Debug and test files
+server/debug-*.js
+server/test-*.js
+server/create-user.js
+server/insert-user.js

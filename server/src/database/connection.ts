@@ -1,6 +1,5 @@
 import sqlite3 from 'sqlite3'
 import { Pool } from 'pg'
-import { promisify } from 'util'
 
 // Create a wrapper class that provides the better-sqlite3 interface for sqlite3
 class SQLiteWrapper {
@@ -161,8 +160,9 @@ class DatabaseConnection {
         client.release()
       }
     } else {
-      const run = promisify(connection.run.bind(connection))
-      return run(sql, params)
+      // For SQLite, use the SQLiteWrapper's prepare method
+      const stmt = connection.prepare(sql)
+      return stmt.run(...params)
     }
   }
 
@@ -178,8 +178,9 @@ class DatabaseConnection {
         client.release()
       }
     } else {
-      const get = promisify(connection.get.bind(connection))
-      return get(sql, params)
+      // For SQLite, use the SQLiteWrapper's prepare method
+      const stmt = connection.prepare(sql)
+      return stmt.get(...params)
     }
   }
 
@@ -195,8 +196,9 @@ class DatabaseConnection {
         client.release()
       }
     } else {
-      const all = promisify(connection.all.bind(connection))
-      return all(sql, params)
+      // For SQLite, use the SQLiteWrapper's prepare method
+      const stmt = connection.prepare(sql)
+      return stmt.all(...params)
     }
   }
 }
