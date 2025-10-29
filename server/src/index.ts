@@ -38,14 +38,21 @@ const limiter = rateLimit({
 })
 app.use(limiter)
 
-app.use(cors({
+// CORS configuration - must be before routes
+const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://program-pro-1.onrender.com', 'https://program-pro.onrender.com']
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
-}))
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}
+app.use(cors(corsOptions))
+
+// Handle OPTIONS preflight requests explicitly (cors middleware should handle this, but being explicit)
+app.options('*', cors(corsOptions))
 
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
@@ -387,10 +394,25 @@ app.get('/api', (_req, res) => {
   })
 })
 
+// API Routes - order matters!
 app.use('/api/auth', authRoutes)
 app.use('/api/programs', programRoutes)
 app.use('/api/templates', templateRoutes)
 app.use('/api/church', churchRoutes)
+
+// Debug middleware - log all API requests (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/*', (req, res, next) => {
+    console.log('🔍 API Request:', {
+      method: req.method,
+      path: req.path,
+      originalUrl: req.originalUrl,
+      url: req.url,
+      baseUrl: req.baseUrl
+    })
+    next()
+  })
+}
 
 app.use(notFound)
 app.use(errorHandler)
