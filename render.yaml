@@ -8,6 +8,9 @@ services:
       - type: rewrite
         source: /api/*
         destination: https://program-pro.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
 
   - type: web
     name: program-pro
