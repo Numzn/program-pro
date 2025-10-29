@@ -313,7 +313,7 @@ app.post('/api/migrate', async (req, res) => {
     
     if (!existingUser) {
       console.log('🔍 Creating default admin user...')
-      const bcrypt = require('bcrypt')
+      const bcrypt = require('bcryptjs')
       const hashedPassword = await bcrypt.hash('password', 10)
       
       if (isPostgres) {
@@ -620,7 +620,7 @@ async function startServer() {
       )
       
       if (!existingUser) {
-        const bcrypt = require('bcrypt')
+        const bcrypt = require('bcryptjs')
         const hashedPassword = await bcrypt.hash('password', 10)
         
         if (isPostgres) {
