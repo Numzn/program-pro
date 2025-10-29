@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+// Force rebuild - Updated: 2025-10-29 - Use correct backend URL
 // Vite configuration for Church Program Pro - Render deployment ready
 // FORCE REDEPLOYMENT: Clear all caches and rebuild with correct API URL
 export default defineConfig({

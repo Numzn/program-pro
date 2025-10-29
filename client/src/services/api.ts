@@ -5,7 +5,8 @@ class ApiService {
   private api: AxiosInstance
 
   constructor() {
-    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api'
+    // Use relative URL - Vite proxy (dev) or Render (prod) will handle routing
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || '/api'
     console.log('🌐 API Service initialized with URL:', apiUrl)
     
     this.api = axios.create({
