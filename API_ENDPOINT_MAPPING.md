@@ -14,7 +14,7 @@
 
 ## Endpoint Mapping
 
-### Authentication (`/api/auth`)
+### Authentication (`/api/auth`) [legacy]
 
 | Frontend Call | Full URL (Production) | Backend Route | Method | Status |
 |--------------|----------------------|---------------|--------|--------|
@@ -22,7 +22,17 @@
 | `POST /auth/logout` | `https://program-pro.onrender.com/api/auth/logout` | `router.post('/logout')` mounted at `/api/auth` | ✅ MATCH |
 | `GET /auth/me` | (Not used by frontend) | `router.get('/me')` mounted at `/api/auth` | ⚠️ Available but unused |
 
-### Programs (`/api/programs`)
+### Authentication v1 (`/api/v1/auth`)
+
+| Frontend Call | Full URL (Production) | Backend Route | Method | Status |
+|--------------|----------------------|---------------|--------|--------|
+| `POST /auth/login` | `https://program-pro.onrender.com/api/v1/auth/login` | controller `login` | ✅ NEW |
+| `POST /auth/refresh` | `https://program-pro.onrender.com/api/v1/auth/refresh` | controller `refresh` | ✅ NEW |
+| `POST /auth/logout` | `https://program-pro.onrender.com/api/v1/auth/logout` | controller `logout` | ✅ NEW |
+| `GET /auth/me` | `https://program-pro.onrender.com/api/v1/auth/me` | controller `me` | ✅ NEW |
+| `POST /auth/register` | `https://program-pro.onrender.com/api/v1/auth/register` | controller `register` | ✅ NEW |
+
+### Programs (`/api/programs`) [legacy] and (`/api/v1/programs`)
 
 | Frontend Call | Full URL (Production) | Backend Route | Method | Status |
 |--------------|----------------------|---------------|--------|--------|
@@ -35,7 +45,7 @@
 | `POST /programs/:id/guests` | `https://program-pro.onrender.com/api/programs/1/guests` | `router.post('/:id/guests')` mounted at `/api/programs` | ✅ MATCH |
 | `POST /programs/bulk-import` | `https://program-pro.onrender.com/api/programs/bulk-import` | `router.post('/bulk-import')` mounted at `/api/programs` | ✅ MATCH |
 
-### Templates (`/api/templates`)
+### Templates (`/api/templates`) [legacy] and (`/api/v1/templates`)
 
 | Frontend Call | Full URL (Production) | Backend Route | Method | Status |
 |--------------|----------------------|---------------|--------|--------|
@@ -45,7 +55,7 @@
 | `PUT /templates/:id` | `https://program-pro.onrender.com/api/templates/1` | `router.put('/:id')` mounted at `/api/templates` | ✅ MATCH |
 | `DELETE /templates/:id` | `https://program-pro.onrender.com/api/templates/1` | `router.delete('/:id')` mounted at `/api/templates` | ✅ MATCH |
 
-### Church (`/api/church`)
+### Church (`/api/church`) [legacy] and (`/api/v1/church`)
 
 | Frontend Call | Full URL (Production) | Backend Route | Method | Status |
 |--------------|----------------------|---------------|--------|--------|

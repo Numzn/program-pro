@@ -11,8 +11,8 @@ class ApiService {
     // CRITICAL: Override env var if we're on production to fix old cached builds
     let apiUrl: string
     if (isProduction) {
-      // Force correct URL for production, ignore potentially stale env var
-      apiUrl = 'https://program-pro.onrender.com/api'
+      // Force correct URL for production (v1)
+      apiUrl = 'https://program-pro.onrender.com/api/v1'
       console.log('🚨 PRODUCTION: Forcing correct API URL, ignoring env var')
     } else {
       // For local/dev, use env var or fallback to relative path (Vite proxy)
@@ -45,7 +45,7 @@ class ApiService {
 
     this.api.interceptors.response.use(
       (response) => response,
-      (error) => {
+      async (error) => {
         // Enhanced error logging for debugging
         if (error.response) {
           console.error('❌ API Error Response:', {
@@ -66,9 +66,17 @@ class ApiService {
         }
         
         if (error.response?.status === 401) {
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          window.location.href = '/admin/login'
+          // Try one silent refresh
+          try {
+            await this.refreshAccessToken()
+            // Retry original request once
+            const cfg = error.config
+            return this.api.request(cfg)
+          } catch {
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            window.location.href = '/admin/login'
+          }
         }
         return Promise.reject(error)
       }
@@ -83,12 +91,27 @@ class ApiService {
     })
     console.log('✅ Login response received:', response.status)
     
-    if (response.data.success && response.data.user && response.data.token) {
+    // Accept legacy shape { user, token } or v1 shape { data: { user }, accessToken }
+    if (response.data?.success && response.data?.user && response.data?.token) {
       localStorage.setItem('token', response.data.token)
       localStorage.setItem('user', JSON.stringify(response.data.user))
       return { user: response.data.user, token: response.data.token }
     }
+    if (response.data?.success && response.data?.data?.user && response.data?.accessToken) {
+      localStorage.setItem('token', response.data.accessToken)
+      localStorage.setItem('user', JSON.stringify(response.data.data.user))
+      return { user: response.data.data.user, token: response.data.accessToken }
+    }
     throw new Error(response.data.error || 'Login failed')
+  }
+
+  private async refreshAccessToken(): Promise<void> {
+    const response = await this.api.post('/auth/refresh')
+    if (response.data?.success && response.data?.accessToken) {
+      localStorage.setItem('token', response.data.accessToken)
+      return
+    }
+    throw new Error('Failed to refresh token')
   }
 
   async logout(): Promise<void> {

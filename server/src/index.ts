@@ -11,6 +11,7 @@ import authRoutes from './api/auth'
 import programRoutes from './api/programs'
 import templateRoutes from './api/templates'
 import churchRoutes from './api/church'
+import v1Router from './routes/index'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -394,6 +395,22 @@ app.get('/api', (_req, res) => {
   })
 })
 
+// API v1 info mirror
+app.get('/api/v1', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'Church Program Pro API - v1',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/v1/auth',
+      programs: '/api/v1/programs',
+      templates: '/api/v1/templates',
+      church: '/api/v1/church',
+      health: '/health'
+    }
+  })
+})
+
 // Debug middleware - log all API requests (only in development, BEFORE routes)
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api', (req, res, next) => {
@@ -413,6 +430,9 @@ app.use('/api/auth', authRoutes)
 app.use('/api/programs', programRoutes)
 app.use('/api/templates', templateRoutes)
 app.use('/api/church', churchRoutes)
+
+// Mount versioned API router
+app.use('/api/v1', v1Router)
 
 app.use(notFound)
 app.use(errorHandler)
