@@ -18,7 +18,11 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 
 @app.on_event("startup")
 async def startup_event():
-    create_tables()
+    try:
+        create_tables()
+    except Exception as e:
+        # Do not crash app on startup if DB DDL is restricted; log and continue
+        print(f"⚠️  create_tables skipped due to error: {e}")
 
 
 @app.get("/")
