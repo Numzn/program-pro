@@ -25,11 +25,14 @@ v1.get('/', (_req, res) => {
 
 // Auth v1 using controller
 const authV1 = express.Router()
+// TEMP: if debugging crashes, you can bypass validation by using the next line instead
+// authV1.post('/login', authController.login)
 authV1.post('/login', validate(loginSchema), authController.login)
 authV1.post('/register', validate(registerSchema), authController.register)
 authV1.get('/me', authenticate, authController.me)
 authV1.post('/refresh', authController.refresh)
 authV1.post('/logout', authController.logout)
+authV1.get('/health', authController.health)
 
 v1.use('/auth', authV1)
 

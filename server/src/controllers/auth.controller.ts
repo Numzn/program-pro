@@ -29,6 +29,15 @@ function setRefreshCookie(res: Response, token: string): void {
 }
 
 export const authController = {
+  async health(_req: Request, res: Response) {
+    try {
+      const testAccess = signAccessToken(0)
+      const testRefresh = signRefreshToken(0)
+      res.json({ success: true, jwt: 'ok', samples: { access: testAccess.slice(0, 16) + '...', refresh: testRefresh.slice(0, 16) + '...' } })
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message })
+    }
+  },
   async login(req: Request, res: Response) {
     const { username, password } = req.body
     const result = await authService.login({ username, password })

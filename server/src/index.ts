@@ -450,6 +450,40 @@ if (process.env.NODE_ENV !== 'production') {
   })
 }
 
+// Always log auth requests minimally to debug 502s (safe: no secrets logged)
+app.use((req, _res, next) => {
+  if (req.originalUrl.startsWith('/api/v1/auth') || req.originalUrl.startsWith('/api/auth')) {
+    try {
+      console.log('🔐 Auth request:', {
+        method: req.method,
+        path: req.path,
+        originalUrl: req.originalUrl,
+        hasBody: !!req.body && Object.keys(req.body || {}).length > 0,
+        contentType: req.headers['content-type']
+      })
+    } catch {}
+  }
+  next()
+})
+
+// Route listing for debugging
+app.get('/api/debug/routes', (req, res) => {
+  const routes: any[] = []
+  // @ts-ignore
+  app._router.stack.forEach((mw: any) => {
+    if (mw.route) {
+      routes.push({ path: mw.route.path, methods: Object.keys(mw.route.methods) })
+    } else if (mw.name === 'router' && mw.handle?.stack) {
+      mw.handle.stack.forEach((h: any) => {
+        if (h.route) {
+          routes.push({ path: h.route.path, methods: Object.keys(h.route.methods) })
+        }
+      })
+    }
+  })
+  res.json({ mountedRoutes: routes })
+})
+
 // API Routes - order matters!
 app.use('/api/auth', authRoutes)
 app.use('/api/programs', programRoutes)
