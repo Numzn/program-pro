@@ -32,14 +32,7 @@ app.use(helmet({
   },
 }))
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.'
-})
-app.use(limiter)
-
-// CORS configuration - must be before routes
+// CORS configuration - must be before routes and BEFORE rate limiter
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://program-pro-1.onrender.com', 'https://program-pro.onrender.com']
@@ -54,6 +47,14 @@ app.use(cors(corsOptions))
 
 // Handle OPTIONS preflight requests explicitly (cors middleware should handle this, but being explicit)
 app.options('*', cors(corsOptions))
+
+// Rate limiting AFTER CORS so CORS headers are present even on errors
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests from this IP, please try again later.'
+})
+app.use(limiter)
 
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))

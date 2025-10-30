@@ -77,7 +77,9 @@ export class ProgramService {
 
     if (process.env.DATABASE_URL?.includes('postgres')) {
       const client = await (connection as any).connect()
-      const pgQuery = query.replace(/\?/g, (_, _i) => `$${params.indexOf(_) + 1}`)
+      // Replace each '?' with $1, $2, ... in order
+      let placeholderIndex = 0
+      const pgQuery = query.replace(/\?/g, () => `$${++placeholderIndex}`)
       const result = await client.query(pgQuery, params)
       client.release()
       return result.rows
