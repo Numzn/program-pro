@@ -1,7 +1,7 @@
 services:
   - type: web
     name: program-pro-client
-    env: static
+    runtime: static
     buildCommand: cd client && npm ci && npm run build
     staticPublishPath: ./client/dist
     routes:
@@ -14,11 +14,11 @@ services:
 
   - type: web
     name: program-pro
-    env: node
-    buildCommand: cd server && npm ci && npm run build
-    startCommand: cd server && npm start
+    runtime: python
+    buildCommand: cd server && pip install -r requirements.txt
+    startCommand: cd server && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: NODE_ENV
+      - key: ENVIRONMENT
         value: production
       - key: PORT
         value: 10000
