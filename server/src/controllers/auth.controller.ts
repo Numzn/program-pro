@@ -39,27 +39,41 @@ export const authController = {
     }
   },
   async login(req: Request, res: Response) {
-    const { username, password } = req.body
-    const result = await authService.login({ username, password })
+    try {
+      console.log('✅ Login controller called')
+      const { username, password } = req.body
 
-    const accessToken = signAccessToken(result.user.id)
-    const refreshToken = signRefreshToken(result.user.id)
+      if (!username || !password) {
+        return res.status(400).json({ success: false, message: 'Username and password required' })
+      }
 
-    // Backward compatibility: keep legacy cookie 'token'
-    res.cookie('token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    })
+      const result = await authService.login({ username, password })
 
-    setRefreshCookie(res, refreshToken)
+      const accessToken = signAccessToken(result.user.id)
+      const refreshToken = signRefreshToken(result.user.id)
 
-    res.json({
-      success: true,
-      data: { user: result.user },
-      accessToken,
-    })
+      // Backward compatibility: keep legacy cookie 'token'
+      res.cookie('token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+
+      setRefreshCookie(res, refreshToken)
+
+      return res.json({
+        success: true,
+        data: { user: result.user },
+        accessToken,
+      })
+    } catch (error: any) {
+      if (error?.message === 'Invalid credentials') {
+        return res.status(401).json({ success: false, message: 'Invalid username or password' })
+      }
+      console.error('❌ Login controller error:', error?.message || error)
+      return res.status(500).json({ success: false, message: 'Login failed' })
+    }
   },
 
   async register(req: Request, res: Response) {

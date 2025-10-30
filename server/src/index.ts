@@ -18,6 +18,8 @@ import { join } from 'path'
 dotenv.config()
 
 const app = express()
+// Trust first proxy (Render/Cloudflare) for correct IP and header handling
+app.set('trust proxy', 1)
 const PORT = parseInt(process.env.PORT || '10000', 10)
 
 app.use(helmet({
@@ -504,7 +506,7 @@ async function startServer() {
     
     const db = DatabaseConnection.getInstance()
     await db.connect()
-    
+
     // Run automatic database migration
     console.log('🔄 Running automatic database migration...')
     try {
