@@ -33,13 +33,25 @@ app.use(helmet({
 }))
 
 // CORS configuration - must be before routes and BEFORE rate limiter
+const allowedOrigins = [
+  'https://program-pro-1.onrender.com',
+  'https://program-pro.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:3000'
+]
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://program-pro-1.onrender.com', 'https://program-pro.onrender.com']
-    : ['http://localhost:3000', 'http://localhost:5173'],
+  origin: function (origin: string | undefined, callback: any) {
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true)
+    }
+    console.log('Blocked by CORS:', origin)
+    return callback(new Error('Not allowed by CORS'))
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   preflightContinue: false,
   optionsSuccessStatus: 204
 }
@@ -47,6 +59,18 @@ app.use(cors(corsOptions))
 
 // Handle OPTIONS preflight requests explicitly (cors middleware should handle this, but being explicit)
 app.options('*', cors(corsOptions))
+
+// Temporary request logging for CORS debugging
+app.use((req, _res, next) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Incoming request:', {
+      origin: req.headers.origin,
+      method: req.method,
+      url: req.url
+    })
+  }
+  next()
+})
 
 // Rate limiting AFTER CORS so CORS headers are present even on errors
 const limiter = rateLimit({
