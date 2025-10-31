@@ -5,7 +5,7 @@ from datetime import datetime
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
-    password: str = Field(..., min_length=1, max_length=72, description="Password (max 72 bytes for bcrypt compatibility)")
+    password: str = Field(..., min_length=1, description="Password (any length supported via bcrypt_sha256)")
 
 
 class UserBase(BaseModel):
