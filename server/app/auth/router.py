@@ -104,7 +104,8 @@ async def register(credentials: LoginRequest, db: Session = Depends(get_db)):
 
         hashed_password = hash_password(credentials.password)
         user = User(
-            username=credentials.username, 
+            username=credentials.username,
+            email=None,  # Email is optional
             password_hash=hashed_password, 
             role="admin", 
             church_id=church.id
