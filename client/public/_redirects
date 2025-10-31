@@ -2,6 +2,6 @@
 # This file provides fallback routing if render.yaml routes aren't applied
 # All routes except /api/* should serve index.html for client-side routing
 
-/api/*  https://program-pro.onrender.com/api/:splat  200
+/api/*  https://backend-5gvy.onrender.com/api/:splat  200
 /*      /index.html  200
 

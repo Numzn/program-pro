@@ -12,7 +12,7 @@ class ApiService {
     let apiUrl: string
     if (isProduction) {
       // Force correct URL for production (v1)
-      apiUrl = 'https://program-pro.onrender.com/api/v1'
+      apiUrl = 'https://backend-5gvy.onrender.com/api/v1'
       console.log('🚨 PRODUCTION: Forcing correct API URL, ignoring env var')
     } else {
       // For local/dev, use env var or fallback to relative path (Vite proxy)
