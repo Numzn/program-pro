@@ -86,20 +86,42 @@ async def logout(response: Response):
 
 @router.post("/register", response_model=SuccessResponse)
 async def register(credentials: LoginRequest, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.username == credentials.username).first()
-    if existing_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
+    try:
+        existing_user = db.query(User).filter(User.username == credentials.username).first()
+        if existing_user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
 
-    church = db.query(Church).first()
-    if not church:
-        church = Church(name="Default Church")
-        db.add(church)
+        church = db.query(Church).first()
+        if not church:
+            church = Church(name="Default Church")
+            db.add(church)
+            db.commit()
+            db.refresh(church)
+        
+        # Ensure church has an ID
+        if not church or not church.id:
+            raise ValueError(f"Failed to create or retrieve church. Church: {church}")
+
+        hashed_password = hash_password(credentials.password)
+        user = User(
+            username=credentials.username, 
+            password_hash=hashed_password, 
+            role="admin", 
+            church_id=church.id
+        )
+        db.add(user)
         db.commit()
-        db.refresh(church)
-
-    hashed_password = hash_password(credentials.password)
-    user = User(username=credentials.username, password_hash=hashed_password, role="admin", church_id=church.id)
-    db.add(user)
-    db.commit()
-    return SuccessResponse(success=True, message="User registered successfully")
+        db.refresh(user)
+        
+        return SuccessResponse(success=True, message="User registered successfully")
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"❌ Register error: {e}")
+        print(f"📋 Traceback:\n{traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
 
