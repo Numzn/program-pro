@@ -5,7 +5,7 @@ from app.database.connection import get_db
 from app.models.database import User
 from app.auth.jwt_handler import verify_access_token
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
@@ -15,6 +15,12 @@ async def get_current_user(
     """
     Get current authenticated user from JWT token.
     """
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+    
     token = credentials.credentials
     payload = verify_access_token(token)
     
