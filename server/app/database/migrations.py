@@ -73,6 +73,24 @@ def create_tables():
     """
     print("🔄 Creating database tables (fallback method)...")
     Base.metadata.create_all(bind=engine)
+    
+    # Ensure address column exists in churches table (fix for current issue)
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            # Check if column exists, add if missing
+            result = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='churches' AND column_name='address'
+            """))
+            if result.fetchone() is None:
+                print("🔧 Adding missing 'address' column to churches table...")
+                conn.execute(text("ALTER TABLE churches ADD COLUMN address TEXT"))
+                print("✅ Address column added")
+    except Exception as e:
+        print(f"⚠️  Could not add address column: {e}")
+    
     print("✅ Database tables created successfully")
 
 
