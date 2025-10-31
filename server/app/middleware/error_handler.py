@@ -11,9 +11,17 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
     )
 
 
-async def general_exception_handler(_request: Request, _exc: Exception):
+async def general_exception_handler(_request: Request, exc: Exception):
+    # Log the full error for debugging
+    import traceback
+    error_trace = traceback.format_exc()
+    print(f"❌ Error: {exc}")
+    print(f"📋 Traceback:\n{error_trace}")
+    
+    # In production, only return generic message for security
+    # But log full details for debugging
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"success": False, "message": "Internal server error"},
+        content={"success": False, "message": "Internal server error", "error_type": type(exc).__name__},
     )
 
