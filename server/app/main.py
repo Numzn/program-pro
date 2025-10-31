@@ -4,6 +4,9 @@ from app.database.migrations import run_migrations
 from app.middleware.cors import setup_cors
 from app.middleware.error_handler import validation_exception_handler, general_exception_handler
 from app.auth.router import router as auth_router
+from app.programs.router import router as programs_router
+from app.church.router import router as church_router
+from app.templates.router import router as templates_router
 from app.config import settings
 
 
@@ -13,7 +16,11 @@ setup_cors(app)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
+# Register routers
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(programs_router, prefix="/api/v1/programs", tags=["programs"])
+app.include_router(church_router, prefix="/api/v1/church", tags=["church"])
+app.include_router(templates_router, prefix="/api/v1/templates", tags=["templates"])
 
 
 @app.on_event("startup")
