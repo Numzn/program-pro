@@ -19,89 +19,101 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create churches table
-    op.create_table(
-        'churches',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('address', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_churches_id'), 'churches', ['id'], unique=False)
+    # Check if tables already exist (idempotent migration)
+    from sqlalchemy import inspect
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    existing_tables = inspector.get_table_names()
+    
+    # Create churches table (if not exists)
+    if 'churches' not in existing_tables:
+        op.create_table(
+            'churches',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('name', sa.String(length=255), nullable=False),
+            sa.Column('address', sa.Text(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+            sa.PrimaryKeyConstraint('id')
+        )
+        op.create_index(op.f('ix_churches_id'), 'churches', ['id'], unique=False)
 
-    # Create users table
-    op.create_table(
-        'users',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('username', sa.String(length=50), nullable=False),
-        sa.Column('email', sa.String(length=255), nullable=True),
-        sa.Column('password_hash', sa.String(length=255), nullable=False),
-        sa.Column('role', sa.String(length=50), server_default='user', nullable=True),
-        sa.Column('church_id', sa.Integer(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.ForeignKeyConstraint(['church_id'], ['churches.id'], ),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('username')
-    )
-    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
-    op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
-    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    # Create users table (if not exists)
+    if 'users' not in existing_tables:
+        op.create_table(
+            'users',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('username', sa.String(length=50), nullable=False),
+            sa.Column('email', sa.String(length=255), nullable=True),
+            sa.Column('password_hash', sa.String(length=255), nullable=False),
+            sa.Column('role', sa.String(length=50), server_default='user', nullable=True),
+            sa.Column('church_id', sa.Integer(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+            sa.ForeignKeyConstraint(['church_id'], ['churches.id'], ),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('username')
+        )
+        op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+        op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
+        op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
 
-    # Create programs table
-    op.create_table(
-        'programs',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('church_id', sa.Integer(), nullable=False),
-        sa.Column('title', sa.String(length=255), nullable=False),
-        sa.Column('date', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('theme', sa.String(length=255), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.ForeignKeyConstraint(['church_id'], ['churches.id'], ),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_programs_id'), 'programs', ['id'], unique=False)
+    # Create programs table (if not exists)
+    if 'programs' not in existing_tables:
+        op.create_table(
+            'programs',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('church_id', sa.Integer(), nullable=False),
+            sa.Column('title', sa.String(length=255), nullable=False),
+            sa.Column('date', sa.DateTime(timezone=True), nullable=True),
+            sa.Column('theme', sa.String(length=255), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+            sa.ForeignKeyConstraint(['church_id'], ['churches.id'], ),
+            sa.PrimaryKeyConstraint('id')
+        )
+        op.create_index(op.f('ix_programs_id'), 'programs', ['id'], unique=False)
 
-    # Create schedule_items table
-    op.create_table(
-        'schedule_items',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('program_id', sa.Integer(), nullable=False),
-        sa.Column('title', sa.String(length=255), nullable=False),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('start_time', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('duration_minutes', sa.Integer(), nullable=True),
-        sa.Column('order_index', sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(['program_id'], ['programs.id'], ),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_schedule_items_id'), 'schedule_items', ['id'], unique=False)
+    # Create schedule_items table (if not exists)
+    if 'schedule_items' not in existing_tables:
+        op.create_table(
+            'schedule_items',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('program_id', sa.Integer(), nullable=False),
+            sa.Column('title', sa.String(length=255), nullable=False),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('start_time', sa.DateTime(timezone=True), nullable=True),
+            sa.Column('duration_minutes', sa.Integer(), nullable=True),
+            sa.Column('order_index', sa.Integer(), nullable=True),
+            sa.ForeignKeyConstraint(['program_id'], ['programs.id'], ),
+            sa.PrimaryKeyConstraint('id')
+        )
+        op.create_index(op.f('ix_schedule_items_id'), 'schedule_items', ['id'], unique=False)
 
-    # Create special_guests table
-    op.create_table(
-        'special_guests',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('program_id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('role', sa.String(length=255), nullable=True),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.ForeignKeyConstraint(['program_id'], ['programs.id'], ),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_special_guests_id'), 'special_guests', ['id'], unique=False)
+    # Create special_guests table (if not exists)
+    if 'special_guests' not in existing_tables:
+        op.create_table(
+            'special_guests',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('program_id', sa.Integer(), nullable=False),
+            sa.Column('name', sa.String(length=255), nullable=False),
+            sa.Column('role', sa.String(length=255), nullable=True),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.ForeignKeyConstraint(['program_id'], ['programs.id'], ),
+            sa.PrimaryKeyConstraint('id')
+        )
+        op.create_index(op.f('ix_special_guests_id'), 'special_guests', ['id'], unique=False)
 
-    # Create program_templates table
-    op.create_table(
-        'program_templates',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('church_id', sa.Integer(), nullable=True),
-        sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('content', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.ForeignKeyConstraint(['church_id'], ['churches.id'], ),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_program_templates_id'), 'program_templates', ['id'], unique=False)
+    # Create program_templates table (if not exists)
+    if 'program_templates' not in existing_tables:
+        op.create_table(
+            'program_templates',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('church_id', sa.Integer(), nullable=True),
+            sa.Column('name', sa.String(length=255), nullable=False),
+            sa.Column('content', sa.Text(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+            sa.ForeignKeyConstraint(['church_id'], ['churches.id'], ),
+            sa.PrimaryKeyConstraint('id')
+        )
+        op.create_index(op.f('ix_program_templates_id'), 'program_templates', ['id'], unique=False)
 
 
 def downgrade() -> None:

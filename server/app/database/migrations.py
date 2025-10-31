@@ -43,17 +43,26 @@ def run_migrations(environment: str = "production"):
         inspector = inspect(engine)
         existing_tables = inspector.get_table_names()
         
+        # IMPORTANT: Check and stamp BEFORE trying to upgrade
         if 'alembic_version' not in existing_tables:
             # First time running migrations - tables may already exist
             # Check if churches table exists
             if 'churches' in existing_tables:
                 print("📋 Database tables already exist, stamping as initial revision...")
                 # Mark database as being at 001_initial without running it
+                # This must happen BEFORE upgrade to prevent 001_initial from running
                 command.stamp(alembic_cfg, "001_initial")
                 print("✅ Database stamped at 001_initial")
             else:
                 # Fresh database, run initial migration
-                print("🆕 Fresh database detected, running initial migration...")
+                print("🆕 Fresh database detected, will run initial migration...")
+        else:
+            # Check current revision
+            try:
+                current = command.current(alembic_cfg)
+                print(f"📌 Current database revision: {current}")
+            except:
+                print("📌 No current revision found")
         
         # In production, we'll apply migrations but log what's happening
         # In a real scenario, you might want more safeguards
@@ -62,6 +71,7 @@ def run_migrations(environment: str = "production"):
             print("💡 Consider backing up database before major migrations")
         
         # Run migrations (will skip already-applied ones)
+        # If we stamped at 001_initial, this will only run 002_add_address
         command.upgrade(alembic_cfg, "head")
         print("✅ Database migrations applied successfully")
         
