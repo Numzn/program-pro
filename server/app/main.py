@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from app.database.migrations import create_tables
+from app.database.migrations import run_migrations
 from app.middleware.cors import setup_cors
 from app.middleware.error_handler import validation_exception_handler, general_exception_handler
 from app.auth.router import router as auth_router
@@ -19,10 +19,12 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 @app.on_event("startup")
 async def startup_event():
     try:
-        create_tables()
+        # Run Alembic migrations to ensure database schema is up to date
+        run_migrations(environment=settings.ENVIRONMENT)
     except Exception as e:
-        # Do not crash app on startup if DB DDL is restricted; log and continue
-        print(f"⚠️  create_tables skipped due to error: {e}")
+        # Do not crash app on startup if migrations fail; log and continue
+        print(f"⚠️  Database migrations skipped due to error: {e}")
+        print("🔄 Server will continue, but database may be out of sync")
 
 
 @app.get("/")
