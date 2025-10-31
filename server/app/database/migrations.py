@@ -38,13 +38,30 @@ def run_migrations(environment: str = "production"):
         print(f"🔄 Checking database migrations...")
         print(f"📌 Target revision: {head_revision}")
         
+        # Check if alembic_version table exists (tracks applied migrations)
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'alembic_version' not in existing_tables:
+            # First time running migrations - tables may already exist
+            # Check if churches table exists
+            if 'churches' in existing_tables:
+                print("📋 Database tables already exist, stamping as initial revision...")
+                # Mark database as being at 001_initial without running it
+                command.stamp(alembic_cfg, "001_initial")
+                print("✅ Database stamped at 001_initial")
+            else:
+                # Fresh database, run initial migration
+                print("🆕 Fresh database detected, running initial migration...")
+        
         # In production, we'll apply migrations but log what's happening
         # In a real scenario, you might want more safeguards
         if environment == "production":
             print("⚠️  Production environment: Applying migrations...")
             print("💡 Consider backing up database before major migrations")
         
-        # Run migrations
+        # Run migrations (will skip already-applied ones)
         command.upgrade(alembic_cfg, "head")
         print("✅ Database migrations applied successfully")
         
