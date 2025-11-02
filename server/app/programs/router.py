@@ -100,7 +100,8 @@ async def create_program(
             title=program_data.title,
             date=program_data.date,
             theme=program_data.theme,
-            is_active=program_data.is_active if program_data.is_active is not None else True
+            is_active=program_data.is_active if program_data.is_active is not None else True,
+            created_by=current_user.id  # Set creator to current authenticated user
         )
         db.add(program)
         db.commit()
@@ -116,13 +117,17 @@ async def create_program(
         return create_api_response(data=program_response)
     
     except SQLAlchemyError as e:
-        logger.error("Database error during program creation", exc_info=True, extra={"user_id": current_user.id})
+        # Capture user_id BEFORE rollback to avoid lazy-loading issues
+        user_id = current_user.id if current_user else None
         db.rollback()
+        logger.error("Database error during program creation", exc_info=True, extra={"user_id": user_id})
         return create_api_response(error="Database error occurred while creating program")
     except Exception as e:
-        logger.error("Unexpected error during program creation", exc_info=True, extra={"user_id": current_user.id})
+        # Capture user_id BEFORE any potential rollback
+        user_id = current_user.id if current_user else None
         if db:
             db.rollback()
+        logger.error("Unexpected error during program creation", exc_info=True, extra={"user_id": user_id})
         return create_api_response(error="Failed to create program")
 
 
