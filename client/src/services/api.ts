@@ -75,7 +75,12 @@ class ApiService {
         }
         
         // Handle 401 errors with token refresh
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // BUT: Don't try to refresh on auth endpoints (login, register, refresh itself)
+        const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') || 
+                              originalRequest?.url?.includes('/auth/register') ||
+                              originalRequest?.url?.includes('/auth/refresh')
+        
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
           originalRequest._retry = true
           
           // If already refreshing, queue this request

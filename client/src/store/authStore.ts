@@ -113,6 +113,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     if (!token) {
       const { token: storedToken, user: storedUser } = loadFromLocalStorage()
       if (!storedToken) {
+        // No token in localStorage, user is not authenticated
         return false
       }
       set({ token: storedToken, user: storedUser })
@@ -150,8 +151,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
       
       return false
-    } catch (error) {
-      console.error('❌ Token validation failed:', error)
+    } catch (error: any) {
+      // If 401, token is invalid/expired - clear it silently
+      if (error.response?.status === 401) {
+        console.log('🔐 Token expired or invalid, clearing auth state')
+      } else {
+        console.error('❌ Token validation failed:', error)
+      }
+      
       // Clear invalid token
       get().clearRefreshTimer()
       set({
