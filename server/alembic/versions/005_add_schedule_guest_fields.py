@@ -51,6 +51,11 @@ def upgrade() -> None:
         if 'special_guests' in inspector.get_table_names():
             columns = [col['name'] for col in inspector.get_columns('special_guests')]
             
+            # Add description if missing (should exist from initial migration, but check anyway)
+            if 'description' not in columns:
+                print("🔧 Adding 'description' column to special_guests table...")
+                op.add_column('special_guests', sa.Column('description', sa.Text(), nullable=True))
+            
             if 'bio' not in columns:
                 print("🔧 Adding 'bio' column to special_guests table...")
                 op.add_column('special_guests', sa.Column('bio', sa.Text(), nullable=True))

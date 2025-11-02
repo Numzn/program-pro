@@ -275,6 +275,11 @@ async def add_schedule_item(
         if not program:
             return create_api_response(error="Program not found")
         
+        # Check which columns exist in the database
+        from sqlalchemy import inspect
+        inspector = inspect(db.bind)
+        columns = [col['name'] for col in inspector.get_columns('schedule_items')]
+        
         # Log received data for debugging
         logger.info("Adding schedule item", extra={
             "program_id": program_id,
@@ -282,10 +287,11 @@ async def add_schedule_item(
             "has_start_time": item_data.start_time is not None,
             "has_description": item_data.description is not None,
             "order_index": item_data.order_index,
-            "type": item_data.type
+            "type": item_data.type,
+            "existing_columns": columns
         })
         
-        # Build schedule item with safe attribute setting
+        # Build schedule item with only required fields
         schedule_item = ScheduleItem(
             program_id=program_id,
             title=item_data.title,
@@ -293,22 +299,15 @@ async def add_schedule_item(
             start_time=item_data.start_time
         )
         
-        # Set optional fields safely (columns might not exist in DB yet)
-        try:
-            if item_data.duration_minutes is not None:
-                schedule_item.duration_minutes = item_data.duration_minutes
-        except AttributeError:
-            logger.warning("duration_minutes column may not exist in database yet, skipping")
+        # Set optional fields ONLY if columns exist in database
+        if 'duration_minutes' in columns and item_data.duration_minutes is not None:
+            schedule_item.duration_minutes = item_data.duration_minutes
         
-        try:
+        if 'order_index' in columns:
             schedule_item.order_index = item_data.order_index if item_data.order_index is not None else 0
-        except AttributeError:
-            logger.warning("order_index column may not exist in database yet, skipping")
         
-        try:
+        if 'type' in columns:
             schedule_item.type = item_data.type if item_data.type else "worship"
-        except AttributeError:
-            logger.warning("type column may not exist in database yet, skipping")
         
         db.add(schedule_item)
         
@@ -376,6 +375,11 @@ async def add_special_guest(
         if not program:
             return create_api_response(error="Program not found")
         
+        # Check which columns exist in the database
+        from sqlalchemy import inspect
+        inspector = inspect(db.bind)
+        columns = [col['name'] for col in inspector.get_columns('special_guests')]
+        
         # Log received data for debugging
         logger.info("Adding special guest", extra={
             "program_id": program_id,
@@ -383,19 +387,31 @@ async def add_special_guest(
             "has_role": guest_data.role is not None,
             "has_bio": guest_data.bio is not None,
             "has_photo_url": guest_data.photo_url is not None,
-            "display_order": guest_data.display_order
+            "display_order": guest_data.display_order,
+            "existing_columns": columns
         })
         
-        # Build special guest with safe attribute setting
+        # Build special guest with only required fields
         special_guest = SpecialGuest(
             program_id=program_id,
-            name=guest_data.name,
-            role=guest_data.role,
-            description=guest_data.description,
-            bio=guest_data.bio,
-            photo_url=guest_data.photo_url,
-            display_order=guest_data.display_order if guest_data.display_order is not None else 0
+            name=guest_data.name
         )
+        
+        # Set optional fields ONLY if columns exist in database
+        if 'role' in columns:
+            special_guest.role = guest_data.role
+        
+        if 'description' in columns:
+            special_guest.description = guest_data.description
+        
+        if 'bio' in columns:
+            special_guest.bio = guest_data.bio
+        
+        if 'photo_url' in columns:
+            special_guest.photo_url = guest_data.photo_url
+        
+        if 'display_order' in columns:
+            special_guest.display_order = guest_data.display_order if guest_data.display_order is not None else 0
         
         db.add(special_guest)
         
