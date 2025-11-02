@@ -84,9 +84,16 @@ export const useProgramStore = create<ProgramStore>((set) => ({
     set({ isLoading: true, error: null })
     try {
       const updated = await apiService.updateProgram(id, data)
+      
+      // Fetch full program details to get latest schedule items and guests
+      const fullProgram = await apiService.getProgramById(id)
+      
       set(state => ({
         programs: state.programs.map(p => p.id === id ? updated : p),
-        isLoading: false
+        // Update activeProgram if it matches the updated program
+        activeProgram: state.activeProgram?.id === id ? fullProgram : state.activeProgram,
+        isLoading: false,
+        error: null
       }))
       return updated
     } catch (error: any) {

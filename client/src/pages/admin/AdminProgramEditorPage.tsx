@@ -51,18 +51,30 @@ const AdminProgramEditorPage: React.FC = () => {
   }, [isEditing, id, fetchProgramById])
 
   useEffect(() => {
-    if (isEditing && activeProgram) {
+    if (isEditing && activeProgram && activeProgram.id === parseInt(id || '0')) {
       // Convert date to YYYY-MM-DD format for date input
       let dateStr = ''
       if (activeProgram.date) {
         try {
-          const date = new Date(activeProgram.date)
-          dateStr = date.toISOString().split('T')[0] // Extract YYYY-MM-DD
+          // Handle various date formats from API
+          const dateValue = activeProgram.date
+          if (typeof dateValue === 'string') {
+            // If it's already YYYY-MM-DD, use it
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+              dateStr = dateValue
+            } else {
+              // Parse ISO string or other formats
+              const date = new Date(dateValue)
+              if (!isNaN(date.getTime())) {
+                dateStr = date.toISOString().split('T')[0] // Extract YYYY-MM-DD
+              }
+            }
+          } else if (dateValue instanceof Date) {
+            dateStr = dateValue.toISOString().split('T')[0]
+          }
         } catch (e) {
-          // If date is already in YYYY-MM-DD format, use it directly
-          dateStr = activeProgram.date.includes('T') 
-            ? activeProgram.date.split('T')[0]
-            : activeProgram.date
+          console.warn('Error parsing date:', e)
+          dateStr = ''
         }
       }
       
@@ -82,7 +94,7 @@ const AdminProgramEditorPage: React.FC = () => {
         hasGuests: activeProgram.special_guests?.length || 0
       })
     }
-  }, [isEditing, activeProgram])
+  }, [isEditing, activeProgram, id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,22 +104,48 @@ const AdminProgramEditorPage: React.FC = () => {
       return
     }
 
+    // Client-side validation
+    if (!formData.title.trim()) {
+      toast.error('Program title is required')
+      return
+    }
+
+    if (!formData.date) {
+      toast.error('Program date is required')
+      return
+    }
+
+    // Prepare data with properly formatted date
+    // Date input gives us YYYY-MM-DD format, convert to ISO string for backend
+    const submitData = {
+      title: formData.title.trim(),
+      date: formData.date ? new Date(formData.date + 'T00:00:00').toISOString() : null,
+      theme: formData.theme?.trim() || null,
+      is_active: formData.is_active
+    }
+
     try {
       if (isEditing && id) {
-        await updateProgram(parseInt(id), formData)
+        await updateProgram(parseInt(id), submitData)
         toast.success('Program updated successfully')
-        // Stay on edit page - don't redirect so user can continue editing schedule/guests
+        // Refresh program details to show updated data
+        await fetchProgramById(parseInt(id))
       } else {
         // Create program and stay on page to allow adding schedule items and guests
-        const newProgram = await createProgram(formData)
+        const newProgram = await createProgram(submitData)
         toast.success('Program created successfully! You can now add schedule items and guests.')
         // Set the created program ID so the managers appear
         setCreatedProgramId(newProgram.id)
-        // Fetch the full program details to show in managers
+        // Fetch the full program details to show in managers (createProgram already does this, but ensure it's done)
         await fetchProgramById(newProgram.id)
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save program')
+      // Error handling will show detailed messages from API
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Failed to save program'
+      toast.error(errorMessage)
     }
   }
 

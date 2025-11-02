@@ -261,21 +261,76 @@ class ApiService {
   }
 
   async createProgram(data: any): Promise<Program> {
-    const response = await this.api.post<ApiResponse<Program>>('/programs', data)
-    
-    if (response.data.success && response.data.data) {
-      return response.data.data
+    try {
+      const response = await this.api.post<ApiResponse<Program>>('/programs', data)
+      
+      if (response.data.success && response.data.data) {
+        return response.data.data
+      }
+      throw new Error(response.data.error || 'Failed to create program')
+    } catch (error: any) {
+      // Extract detailed validation errors from 422 responses
+      if (error.response?.status === 422 && error.response?.data) {
+        const validationErrors = this.extractValidationErrors(error.response.data)
+        if (validationErrors) {
+          throw new Error(validationErrors)
+        }
+      }
+      // Re-throw with better error message
+      const errorMessage = error.response?.data?.detail ||
+                          error.response?.data?.error ||
+                          error.message ||
+                          'Failed to create program'
+      throw new Error(errorMessage)
     }
-    throw new Error(response.data.error || 'Failed to create program')
   }
 
   async updateProgram(id: number, data: any): Promise<Program> {
-    const response = await this.api.put<ApiResponse<Program>>(`/programs/${id}`, data)
-    
-    if (response.data.success && response.data.data) {
-      return response.data.data
+    try {
+      const response = await this.api.put<ApiResponse<Program>>(`/programs/${id}`, data)
+      
+      if (response.data.success && response.data.data) {
+        return response.data.data
+      }
+      throw new Error(response.data.error || 'Failed to update program')
+    } catch (error: any) {
+      // Extract detailed validation errors from 422 responses
+      if (error.response?.status === 422 && error.response?.data) {
+        const validationErrors = this.extractValidationErrors(error.response.data)
+        if (validationErrors) {
+          throw new Error(validationErrors)
+        }
+      }
+      // Re-throw with better error message
+      const errorMessage = error.response?.data?.detail ||
+                          error.response?.data?.error ||
+                          error.message ||
+                          'Failed to update program'
+      throw new Error(errorMessage)
     }
-    throw new Error(response.data.error || 'Failed to update program')
+  }
+
+  private extractValidationErrors(errorData: any): string | null {
+    // Handle FastAPI validation error format
+    if (errorData.detail && Array.isArray(errorData.detail)) {
+      const errors = errorData.detail.map((err: any) => {
+        const field = err.loc?.join('.') || 'field'
+        const message = err.msg || 'Invalid value'
+        return `${field}: ${message}`
+      })
+      return errors.join(', ')
+    }
+    
+    // Handle custom error format
+    if (errorData.error) {
+      return errorData.error
+    }
+    
+    if (errorData.detail && typeof errorData.detail === 'string') {
+      return errorData.detail
+    }
+    
+    return null
   }
 
   async deleteProgram(id: number): Promise<void> {

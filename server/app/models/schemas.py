@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Any, Union
 from datetime import datetime
+import re
 
 
 class LoginRequest(BaseModel):
@@ -68,6 +69,30 @@ class ProgramBase(BaseModel):
     date: Optional[datetime] = None
     theme: Optional[str] = None
     is_active: Optional[bool] = True
+    
+    @field_validator('date', mode='before')
+    @classmethod
+    def parse_date(cls, v):
+        """Handle date conversion from string to datetime, or None for empty values."""
+        if v is None or v == "" or v == "null":
+            return None
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            try:
+                # Try parsing ISO format datetime string
+                return datetime.fromisoformat(v.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                # If parsing fails, return None instead of raising error
+                # This allows the date to be optional
+                try:
+                    # Try parsing date-only format (YYYY-MM-DD)
+                    if re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+                        return datetime.fromisoformat(f"{v}T00:00:00")
+                except:
+                    pass
+                return None
+        return v
 
 
 class ProgramCreate(ProgramBase):
@@ -79,6 +104,30 @@ class ProgramUpdate(BaseModel):
     date: Optional[datetime] = None
     theme: Optional[str] = None
     is_active: Optional[bool] = None
+    
+    @field_validator('date', mode='before')
+    @classmethod
+    def parse_date(cls, v):
+        """Handle date conversion from string to datetime, or None for empty values."""
+        if v is None or v == "" or v == "null":
+            return None
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            try:
+                # Try parsing ISO format datetime string
+                return datetime.fromisoformat(v.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                # If parsing fails, return None instead of raising error
+                # This allows the date to be optional
+                try:
+                    # Try parsing date-only format (YYYY-MM-DD)
+                    if re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+                        return datetime.fromisoformat(f"{v}T00:00:00")
+                except:
+                    pass
+                return None
+        return v
 
 
 class ScheduleItemBase(BaseModel):
