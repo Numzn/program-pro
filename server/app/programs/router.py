@@ -41,49 +41,69 @@ async def get_programs(
     return create_api_response(data=programs_data)
 
 
+def safe_get_attr(obj, attr, default=None):
+    """Safely get attribute from SQLAlchemy model, handling missing columns."""
+    try:
+        value = getattr(obj, attr, default)
+        # If attribute exists but is None and we have a default, check if column exists
+        if value is None and default is not None and hasattr(obj.__class__, attr):
+            # Check if it's a column that might not exist in DB yet
+            return default
+        return value if value is not None else default
+    except (AttributeError, KeyError):
+        return default
+
+
 @router.get("/{program_id}")
 async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
     """Get a single program with all details."""
     try:
+        # Fetch program
         program = db.query(Program).filter(Program.id == program_id).first()
         if not program:
             return create_api_response(error="Program not found")
         
         # Load related data - handle missing columns gracefully
+        schedule_items = []
         try:
             schedule_items = db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).order_by(ScheduleItem.order_index).all()
-        except Exception as e:
+        except (AttributeError, Exception) as e:
             logger.warning("Error ordering schedule_items by order_index - column may not exist", exc_info=True, extra={"program_id": program_id})
-            # Fallback: order by id
-            schedule_items = db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).order_by(ScheduleItem.id).all()
+            try:
+                schedule_items = db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).order_by(ScheduleItem.id).all()
+            except Exception as e2:
+                logger.error("Error fetching schedule_items", exc_info=True, extra={"program_id": program_id, "error": str(e2)})
+                schedule_items = []
         
+        special_guests = []
         try:
             special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).order_by(SpecialGuest.display_order).all()
-        except Exception as e:
+        except (AttributeError, Exception) as e:
             logger.warning("Error ordering special_guests by display_order - column may not exist", exc_info=True, extra={"program_id": program_id})
-            # Fallback: order by id
-            special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).order_by(SpecialGuest.id).all()
+            try:
+                special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).order_by(SpecialGuest.id).all()
+            except Exception as e2:
+                logger.error("Error fetching special_guests", exc_info=True, extra={"program_id": program_id, "error": str(e2)})
+                special_guests = []
         
         # Build response - provide defaults for missing columns
         schedule_items_data = []
         for si in schedule_items:
             try:
-                # Use getattr with defaults for columns that might not exist yet
                 item_dict = {
                     "id": si.id,
                     "program_id": si.program_id,
-                    "title": si.title,
-                    "description": getattr(si, 'description', None),
-                    "start_time": getattr(si, 'start_time', None),
-                    "duration_minutes": getattr(si, 'duration_minutes', None),
-                    "order_index": getattr(si, 'order_index', 0),
-                    "type": getattr(si, 'type', 'worship'),  # Default to 'worship' if column doesn't exist
-                    "created_at": getattr(si, 'created_at', None) or datetime.now()
+                    "title": safe_get_attr(si, 'title', ''),
+                    "description": safe_get_attr(si, 'description', None),
+                    "start_time": safe_get_attr(si, 'start_time', None),
+                    "duration_minutes": safe_get_attr(si, 'duration_minutes', None),
+                    "order_index": safe_get_attr(si, 'order_index', 0),
+                    "type": safe_get_attr(si, 'type', 'worship'),
+                    "created_at": safe_get_attr(si, 'created_at', None) or datetime.now()
                 }
                 schedule_items_data.append(ScheduleItemResponse.model_validate(item_dict))
             except Exception as e:
-                logger.warning("Error validating schedule item", exc_info=True, extra={"item_id": getattr(si, 'id', None)})
-                # Skip this item if validation fails
+                logger.warning("Error validating schedule item", exc_info=True, extra={"item_id": getattr(si, 'id', None), "error": str(e)})
                 continue
         
         special_guests_data = []
@@ -92,28 +112,27 @@ async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
                 guest_dict = {
                     "id": sg.id,
                     "program_id": sg.program_id,
-                    "name": sg.name,
-                    "role": getattr(sg, 'role', None),
-                    "description": getattr(sg, 'description', None),
-                    "bio": getattr(sg, 'bio', None),
-                    "photo_url": getattr(sg, 'photo_url', None),
-                    "display_order": getattr(sg, 'display_order', 0),  # Default to 0 if column doesn't exist
-                    "created_at": getattr(sg, 'created_at', None) or datetime.now()
+                    "name": safe_get_attr(sg, 'name', ''),
+                    "role": safe_get_attr(sg, 'role', None),
+                    "description": safe_get_attr(sg, 'description', None),
+                    "bio": safe_get_attr(sg, 'bio', None),
+                    "photo_url": safe_get_attr(sg, 'photo_url', None),
+                    "display_order": safe_get_attr(sg, 'display_order', 0),
+                    "created_at": safe_get_attr(sg, 'created_at', None) or datetime.now()
                 }
                 special_guests_data.append(SpecialGuestResponse.model_validate(guest_dict))
             except Exception as e:
-                logger.warning("Error validating special guest", exc_info=True, extra={"guest_id": getattr(sg, 'id', None)})
-                # Skip this guest if validation fails
+                logger.warning("Error validating special guest", exc_info=True, extra={"guest_id": getattr(sg, 'id', None), "error": str(e)})
                 continue
         
-        # Build response
+        # Build program response
         program_dict = {
             "id": program.id,
-            "church_id": program.church_id,
-            "title": program.title,
-            "date": program.date,
-            "theme": program.theme,
-            "created_at": program.created_at,
+            "church_id": safe_get_attr(program, 'church_id', None),
+            "title": safe_get_attr(program, 'title', ''),
+            "date": safe_get_attr(program, 'date', None),
+            "theme": safe_get_attr(program, 'theme', None),
+            "created_at": safe_get_attr(program, 'created_at', None) or datetime.now(),
             "schedule_items": schedule_items_data,
             "special_guests": special_guests_data
         }
@@ -121,8 +140,8 @@ async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
         return create_api_response(data=program_dict)
     
     except Exception as e:
-        logger.error("Error fetching program by ID", exc_info=True, extra={"program_id": program_id})
-        return create_api_response(error="Failed to fetch program details")
+        logger.error("Error fetching program by ID", exc_info=True, extra={"program_id": program_id, "error": str(e), "error_type": type(e).__name__})
+        return create_api_response(error=f"Failed to fetch program details: {str(e)}")
 
 
 @router.post("/")
