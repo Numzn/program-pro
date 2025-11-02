@@ -20,11 +20,13 @@ interface ProgramStore {
   
   // Schedule items management
   addScheduleItem: (programId: number, data: any) => Promise<void>
+  updateScheduleItem: (programId: number, itemId: number, data: any) => Promise<void>
   deleteScheduleItem: (programId: number, itemId: number) => Promise<void>
   reorderScheduleItems: (programId: number, items: any[]) => Promise<void>
   
   // Special guests management
   addSpecialGuest: (programId: number, data: any) => Promise<void>
+  updateSpecialGuest: (programId: number, guestId: number, data: any) => Promise<void>
   deleteSpecialGuest: (programId: number, guestId: number) => Promise<void>
   reorderSpecialGuests: (programId: number, guests: any[]) => Promise<void>
 }
@@ -145,9 +147,30 @@ export const useProgramStore = create<ProgramStore>((set) => ({
     }
   },
 
+  updateScheduleItem: async (programId: number, itemId: number, data: any) => {
+    try {
+      const updatedItem = await apiService.updateScheduleItem(programId, itemId, data)
+      set(state => {
+        if (state.activeProgram && state.activeProgram.id === programId) {
+          return {
+            activeProgram: {
+              ...state.activeProgram,
+              schedule_items: state.activeProgram.schedule_items.map(item =>
+                item.id === itemId ? updatedItem : item
+              )
+            }
+          }
+        }
+        return state
+      })
+    } catch (error: any) {
+      throw error
+    }
+  },
+
   deleteScheduleItem: async (programId: number, itemId: number) => {
     try {
-      // Note: We'll need to add a delete endpoint to the API
+      await apiService.deleteScheduleItem(programId, itemId)
       set(state => {
         if (state.activeProgram && state.activeProgram.id === programId) {
           return {
@@ -166,19 +189,27 @@ export const useProgramStore = create<ProgramStore>((set) => ({
 
   reorderScheduleItems: async (programId: number, items: any[]) => {
     try {
-      // Update local state immediately for better UX
+      // Prepare reorder data
+      const reorderData = items.map((item, index) => ({
+        id: item.id,
+        order_index: item.order_index !== undefined ? item.order_index : index
+      }))
+      
+      // Call API to reorder
+      const reorderedItems = await apiService.reorderScheduleItems(programId, reorderData)
+      
+      // Update local state with server response
       set(state => {
         if (state.activeProgram && state.activeProgram.id === programId) {
           return {
             activeProgram: {
               ...state.activeProgram,
-              schedule_items: items
+              schedule_items: reorderedItems
             }
           }
         }
         return state
       })
-      // Note: We'll need to add a reorder endpoint to the API
     } catch (error: any) {
       throw error
     }
@@ -204,9 +235,30 @@ export const useProgramStore = create<ProgramStore>((set) => ({
     }
   },
 
+  updateSpecialGuest: async (programId: number, guestId: number, data: any) => {
+    try {
+      const updatedGuest = await apiService.updateSpecialGuest(programId, guestId, data)
+      set(state => {
+        if (state.activeProgram && state.activeProgram.id === programId) {
+          return {
+            activeProgram: {
+              ...state.activeProgram,
+              special_guests: state.activeProgram.special_guests.map(guest =>
+                guest.id === guestId ? updatedGuest : guest
+              )
+            }
+          }
+        }
+        return state
+      })
+    } catch (error: any) {
+      throw error
+    }
+  },
+
   deleteSpecialGuest: async (programId: number, guestId: number) => {
     try {
-      // Note: We'll need to add a delete endpoint to the API
+      await apiService.deleteSpecialGuest(programId, guestId)
       set(state => {
         if (state.activeProgram && state.activeProgram.id === programId) {
           return {
@@ -225,19 +277,27 @@ export const useProgramStore = create<ProgramStore>((set) => ({
 
   reorderSpecialGuests: async (programId: number, guests: any[]) => {
     try {
-      // Update local state immediately for better UX
+      // Prepare reorder data
+      const reorderData = guests.map((guest, index) => ({
+        id: guest.id,
+        display_order: guest.display_order !== undefined ? guest.display_order : index
+      }))
+      
+      // Call API to reorder
+      const reorderedGuests = await apiService.reorderSpecialGuests(programId, reorderData)
+      
+      // Update local state with server response
       set(state => {
         if (state.activeProgram && state.activeProgram.id === programId) {
           return {
             activeProgram: {
               ...state.activeProgram,
-              special_guests: guests
+              special_guests: reorderedGuests
             }
           }
         }
         return state
       })
-      // Note: We'll need to add a reorder endpoint to the API
     } catch (error: any) {
       throw error
     }

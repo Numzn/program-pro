@@ -285,6 +285,32 @@ class ApiService {
     throw new Error(response.data.error || 'Failed to add schedule item')
   }
 
+  async updateScheduleItem(programId: number, itemId: number, data: any): Promise<any> {
+    const response = await this.api.put<ApiResponse>(`/programs/${programId}/schedule/${itemId}`, data)
+    
+    if (response.data.success && response.data.data) {
+      return response.data.data
+    }
+    throw new Error(response.data.error || 'Failed to update schedule item')
+  }
+
+  async deleteScheduleItem(programId: number, itemId: number): Promise<void> {
+    const response = await this.api.delete<ApiResponse>(`/programs/${programId}/schedule/${itemId}`)
+    
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to delete schedule item')
+    }
+  }
+
+  async reorderScheduleItems(programId: number, items: Array<{id: number, order_index: number}>): Promise<any[]> {
+    const response = await this.api.put<ApiResponse<any[]>>(`/programs/${programId}/schedule/reorder`, { items })
+    
+    if (response.data.success && response.data.data) {
+      return response.data.data
+    }
+    throw new Error(response.data.error || 'Failed to reorder schedule items')
+  }
+
   async addSpecialGuest(programId: number, data: any): Promise<any> {
     const response = await this.api.post<ApiResponse>(`/programs/${programId}/guests`, data)
     
@@ -292,6 +318,32 @@ class ApiService {
       return response.data.data
     }
     throw new Error(response.data.error || 'Failed to add special guest')
+  }
+
+  async updateSpecialGuest(programId: number, guestId: number, data: any): Promise<any> {
+    const response = await this.api.put<ApiResponse>(`/programs/${programId}/guests/${guestId}`, data)
+    
+    if (response.data.success && response.data.data) {
+      return response.data.data
+    }
+    throw new Error(response.data.error || 'Failed to update special guest')
+  }
+
+  async deleteSpecialGuest(programId: number, guestId: number): Promise<void> {
+    const response = await this.api.delete<ApiResponse>(`/programs/${programId}/guests/${guestId}`)
+    
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to delete special guest')
+    }
+  }
+
+  async reorderSpecialGuests(programId: number, guests: Array<{id: number, display_order: number}>): Promise<any[]> {
+    const response = await this.api.put<ApiResponse<any[]>>(`/programs/${programId}/guests/reorder`, { guests })
+    
+    if (response.data.success && response.data.data) {
+      return response.data.data
+    }
+    throw new Error(response.data.error || 'Failed to reorder special guests')
   }
 
   // Bulk import methods
