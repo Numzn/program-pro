@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
@@ -14,8 +15,21 @@ import AdminChurchSettingsPage from './pages/admin/AdminChurchSettingsPage'
 
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
+import { useAuthStore } from './store/authStore'
 
 function App() {
+  const { validateAuth, isLoading } = useAuthStore()
+
+  // Initialize auth on app mount
+  useEffect(() => {
+    const initAuth = async () => {
+      // Validate existing token if present
+      await validateAuth()
+    }
+    
+    initAuth()
+  }, [validateAuth])
+
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-background">

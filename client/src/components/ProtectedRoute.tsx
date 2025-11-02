@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { LoadingSpinner } from './ui/LoadingSpinner'
@@ -8,13 +8,10 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, user, checkAuth, isLoading } = useAuthStore()
+  const { isAuthenticated, user, isLoading } = useAuthStore()
   const location = useLocation()
 
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
-
+  // Show loading state during initial auth validation
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -26,6 +23,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     )
   }
 
+  // Redirect to login if not authenticated
+  // Auth validation is handled at app level, this just checks the result
   if (!isAuthenticated || !user) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />
   }

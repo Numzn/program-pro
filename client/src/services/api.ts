@@ -1,8 +1,14 @@
 import axios, { AxiosInstance } from 'axios'
 import { ApiResponse, User, Program, ProgramWithDetails } from '../types'
+import { useAuthStore } from '../store/authStore'
 
 class ApiService {
   private api: AxiosInstance
+  private isRefreshing = false
+  private failedQueue: Array<{
+    resolve: (value?: any) => void
+    reject: (error?: any) => void
+  }> = []
 
   constructor() {
     // Runtime detection: Check if we're on Render production
@@ -34,7 +40,8 @@ class ApiService {
 
     this.api.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('token')
+        // Read token from AuthStore (single source of truth)
+        const token = useAuthStore.getState().getToken()
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
@@ -46,6 +53,8 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       async (error) => {
+        const originalRequest = error.config
+        
         // Enhanced error logging for debugging
         if (error.response) {
           console.error('❌ API Error Response:', {
@@ -65,22 +74,69 @@ class ApiService {
           })
         }
         
-        if (error.response?.status === 401) {
-          // Try one silent refresh
+        // Handle 401 errors with token refresh
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true
+          
+          // If already refreshing, queue this request
+          if (this.isRefreshing) {
+            return new Promise((resolve, reject) => {
+              this.failedQueue.push({ resolve, reject })
+            }).then(() => {
+              const token = useAuthStore.getState().getToken()
+              if (token) {
+                originalRequest.headers.Authorization = `Bearer ${token}`
+              }
+              return this.api.request(originalRequest)
+            }).catch((err) => {
+              return Promise.reject(err)
+            })
+          }
+          
+          this.isRefreshing = true
+          
           try {
-            await this.refreshAccessToken()
-            // Retry original request once
-            const cfg = error.config
-            return this.api.request(cfg)
-          } catch {
-            localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            window.location.href = '/admin/login'
+            // Attempt to refresh token using AuthStore
+            await useAuthStore.getState().refreshToken()
+            
+            // Process queued requests
+            this.processQueue(null)
+            
+            // Retry original request with new token
+            const token = useAuthStore.getState().getToken()
+            if (token) {
+              originalRequest.headers.Authorization = `Bearer ${token}`
+            }
+            return this.api.request(originalRequest)
+          } catch (refreshError) {
+            // Refresh failed, clear state and redirect
+            this.processQueue(refreshError)
+            await useAuthStore.getState().logout()
+            
+            // Only redirect if not already on login page
+            if (window.location.pathname !== '/admin/login') {
+              window.location.href = '/admin/login'
+            }
+            return Promise.reject(refreshError)
+          } finally {
+            this.isRefreshing = false
           }
         }
+        
         return Promise.reject(error)
       }
     )
+  }
+
+  private processQueue(error: any) {
+    this.failedQueue.forEach((promise) => {
+      if (error) {
+        promise.reject(error)
+      } else {
+        promise.resolve()
+      }
+    })
+    this.failedQueue = []
   }
 
   async login(username: string, password: string): Promise<{ user: User; token: string }> {
@@ -91,35 +147,31 @@ class ApiService {
     })
     console.log('✅ Login response received:', response.status)
     
-    // Accept legacy shape { user, token } or v1 shape { data: { user }, accessToken }
-    if (response.data?.success && response.data?.user && response.data?.token) {
-      localStorage.setItem('token', response.data.token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      return { user: response.data.user, token: response.data.token }
-    }
+    // Handle v1 API response shape: { success: true, data: { user }, accessToken }
     if (response.data?.success && response.data?.data?.user && response.data?.accessToken) {
-      localStorage.setItem('token', response.data.accessToken)
-      localStorage.setItem('user', JSON.stringify(response.data.data.user))
-      return { user: response.data.data.user, token: response.data.accessToken }
+      return { 
+        user: response.data.data.user, 
+        token: response.data.accessToken 
+      }
     }
+    
+    // Legacy shape fallback (shouldn't happen with current backend)
+    if (response.data?.success && response.data?.user && response.data?.token) {
+      return { 
+        user: response.data.user, 
+        token: response.data.token 
+      }
+    }
+    
     throw new Error(response.data.error || 'Login failed')
-  }
-
-  private async refreshAccessToken(): Promise<void> {
-    const response = await this.api.post('/auth/refresh')
-    if (response.data?.success && response.data?.accessToken) {
-      localStorage.setItem('token', response.data.accessToken)
-      return
-    }
-    throw new Error('Failed to refresh token')
   }
 
   async logout(): Promise<void> {
     try {
       await this.api.post('/auth/logout')
     } finally {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      // AuthStore handles state cleanup in logout()
+      // This method is kept for backward compatibility
     }
   }
 
