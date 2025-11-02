@@ -325,14 +325,15 @@ async def add_schedule_item(
             params['type'] = item_data.type if item_data.type else 'worship'
         
         # Build and execute parameterized SQL
-        sql = f"INSERT INTO schedule_items ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
-        result = db.execute(text(sql), params)
-        item_id = result.scalar()
-        db.commit()
-        
-        # Fetch the created item
-        schedule_item = db.query(ScheduleItem).filter(ScheduleItem.id == item_id).first()
-        db.refresh(schedule_item)
+        try:
+            sql = f"INSERT INTO schedule_items ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+            result = db.execute(text(sql), params)
+            item_id = result.scalar()
+            db.commit()
+            
+            # Fetch the created item
+            schedule_item = db.query(ScheduleItem).filter(ScheduleItem.id == item_id).first()
+            db.refresh(schedule_item)
         except SQLAlchemyError as commit_error:
             db.rollback()
             # Capture the actual database error message
@@ -442,14 +443,15 @@ async def add_special_guest(
             params['display_order'] = guest_data.display_order if guest_data.display_order is not None else 0
         
         # Build and execute parameterized SQL
-        sql = f"INSERT INTO special_guests ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
-        result = db.execute(text(sql), params)
-        guest_id = result.scalar()
-        db.commit()
-        
-        # Fetch the created guest
-        special_guest = db.query(SpecialGuest).filter(SpecialGuest.id == guest_id).first()
-        db.refresh(special_guest)
+        try:
+            sql = f"INSERT INTO special_guests ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+            result = db.execute(text(sql), params)
+            guest_id = result.scalar()
+            db.commit()
+            
+            # Fetch the created guest
+            special_guest = db.query(SpecialGuest).filter(SpecialGuest.id == guest_id).first()
+            db.refresh(special_guest)
         except SQLAlchemyError as commit_error:
             db.rollback()
             # Capture the actual database error message
