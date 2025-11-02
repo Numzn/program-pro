@@ -277,8 +277,24 @@ async def add_schedule_item(
         
         # Check which columns exist in the database
         from sqlalchemy import inspect, text
-        inspector = inspect(db.bind)
+        from app.database.connection import engine
+        
+        # Use engine directly for inspection (more reliable than db.bind)
+        inspector = inspect(engine)
         columns = [col['name'] for col in inspector.get_columns('schedule_items')]
+        
+        # Fallback: if inspection fails, query information_schema directly
+        if not columns:
+            try:
+                result = db.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'schedule_items'
+                """))
+                columns = [row[0] for row in result.fetchall()]
+            except Exception as e:
+                logger.warning("Could not inspect columns, using minimal set", exc_info=True)
+                columns = ['id', 'program_id', 'title']  # Minimal safe set
         
         # Log received data for debugging
         logger.info("Adding schedule item", extra={
@@ -404,8 +420,24 @@ async def add_special_guest(
         
         # Check which columns exist in the database
         from sqlalchemy import inspect, text
-        inspector = inspect(db.bind)
+        from app.database.connection import engine
+        
+        # Use engine directly for inspection (more reliable than db.bind)
+        inspector = inspect(engine)
         columns = [col['name'] for col in inspector.get_columns('special_guests')]
+        
+        # Fallback: if inspection fails, query information_schema directly
+        if not columns:
+            try:
+                result = db.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'special_guests'
+                """))
+                columns = [row[0] for row in result.fetchall()]
+            except Exception as e:
+                logger.warning("Could not inspect columns, using minimal set", exc_info=True)
+                columns = ['id', 'program_id', 'name']  # Minimal safe set
         
         # Log received data for debugging
         logger.info("Adding special guest", extra={
