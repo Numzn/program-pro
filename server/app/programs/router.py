@@ -290,12 +290,21 @@ async def add_schedule_item(
             program_id=program_id,
             title=item_data.title,
             description=item_data.description,
-            start_time=item_data.start_time,
-            duration_minutes=item_data.duration_minutes,
-            order_index=item_data.order_index if item_data.order_index is not None else 0
+            start_time=item_data.start_time
         )
         
-        # Set type field safely (might not exist in DB yet)
+        # Set optional fields safely (columns might not exist in DB yet)
+        try:
+            if item_data.duration_minutes is not None:
+                schedule_item.duration_minutes = item_data.duration_minutes
+        except AttributeError:
+            logger.warning("duration_minutes column may not exist in database yet, skipping")
+        
+        try:
+            schedule_item.order_index = item_data.order_index if item_data.order_index is not None else 0
+        except AttributeError:
+            logger.warning("order_index column may not exist in database yet, skipping")
+        
         try:
             schedule_item.type = item_data.type if item_data.type else "worship"
         except AttributeError:

@@ -31,6 +31,14 @@ def upgrade() -> None:
         if 'schedule_items' in inspector.get_table_names():
             columns = [col['name'] for col in inspector.get_columns('schedule_items')]
             
+            if 'duration_minutes' not in columns:
+                print("🔧 Adding 'duration_minutes' column to schedule_items table...")
+                op.add_column('schedule_items', sa.Column('duration_minutes', sa.Integer(), nullable=True))
+            
+            if 'order_index' not in columns:
+                print("🔧 Adding 'order_index' column to schedule_items table...")
+                op.add_column('schedule_items', sa.Column('order_index', sa.Integer(), nullable=True))
+            
             if 'type' not in columns:
                 print("🔧 Adding 'type' column to schedule_items table...")
                 op.add_column('schedule_items', sa.Column('type', sa.String(50), server_default='worship'))
