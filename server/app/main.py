@@ -1,7 +1,8 @@
 import logging
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from starlette.middleware import ProxyHeadersMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from app.database.migrations import run_migrations
 from app.database.init_data import ensure_admin_user
 from app.middleware.cors import setup_cors
@@ -20,10 +21,33 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class ProxyHeadersMiddleware(BaseHTTPMiddleware):
+    """Custom middleware to trust proxy headers from Render and other reverse proxies."""
+    async def dispatch(self, request: Request, call_next):
+        # Trust X-Forwarded-* headers from Render
+        if "x-forwarded-for" in request.headers:
+            # Extract the original client IP
+            forwarded_for = request.headers.get("x-forwarded-for")
+            if forwarded_for:
+                # Take the first IP (original client)
+                request.state.forwarded_for = forwarded_for.split(",")[0].strip()
+        
+        if "x-forwarded-proto" in request.headers:
+            # Use the forwarded protocol (http/https)
+            request.state.forwarded_proto = request.headers.get("x-forwarded-proto")
+        
+        if "x-forwarded-host" in request.headers:
+            # Use the forwarded host
+            request.state.forwarded_host = request.headers.get("x-forwarded-host")
+        
+        response = await call_next(request)
+        return response
+
+
 app = FastAPI(title="Church Program Pro API", version="1.0.0")
 
 # Trust proxy headers (must be before CORS middleware)
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+app.add_middleware(ProxyHeadersMiddleware)
 
 setup_cors(app)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
