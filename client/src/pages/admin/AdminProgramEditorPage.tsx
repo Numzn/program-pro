@@ -171,24 +171,28 @@ const AdminProgramEditorPage: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-4 pt-4">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Saving...
-                  </>
-                ) : (
-                  isEditing ? 'Update Program' : 'Create Program'
-                )}
-              </Button>
+              {!createdProgramId && (
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    isEditing ? 'Update Program' : 'Create Program'
+                  )}
+                </Button>
+              )}
               
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/admin/programs')}
-              >
-                Cancel
-              </Button>
+              {isEditing && !createdProgramId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/admin/programs')}
+                >
+                  Cancel
+                </Button>
+              )}
             </div>
           </form>
         </CardContent>
