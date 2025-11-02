@@ -42,17 +42,44 @@ const AdminProgramEditorPage: React.FC = () => {
 
   useEffect(() => {
     if (isEditing && id) {
-      fetchProgramById(parseInt(id))
+      console.log('🔄 Fetching program for edit, ID:', id)
+      fetchProgramById(parseInt(id)).catch((error) => {
+        console.error('Failed to fetch program:', error)
+        toast.error('Failed to load program details')
+      })
     }
   }, [isEditing, id, fetchProgramById])
 
   useEffect(() => {
     if (isEditing && activeProgram) {
+      // Convert date to YYYY-MM-DD format for date input
+      let dateStr = ''
+      if (activeProgram.date) {
+        try {
+          const date = new Date(activeProgram.date)
+          dateStr = date.toISOString().split('T')[0] // Extract YYYY-MM-DD
+        } catch (e) {
+          // If date is already in YYYY-MM-DD format, use it directly
+          dateStr = activeProgram.date.includes('T') 
+            ? activeProgram.date.split('T')[0]
+            : activeProgram.date
+        }
+      }
+      
       setFormData({
-        title: activeProgram.title,
-        date: activeProgram.date,
+        title: activeProgram.title || '',
+        date: dateStr,
         theme: activeProgram.theme || '',
-        is_active: activeProgram.is_active
+        is_active: activeProgram.is_active ?? true
+      })
+      
+      console.log('📝 Form data set from activeProgram:', {
+        title: activeProgram.title,
+        date: dateStr,
+        theme: activeProgram.theme,
+        is_active: activeProgram.is_active,
+        hasScheduleItems: activeProgram.schedule_items?.length || 0,
+        hasGuests: activeProgram.special_guests?.length || 0
       })
     }
   }, [isEditing, activeProgram])
@@ -198,7 +225,7 @@ const AdminProgramEditorPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {(isEditing || createdProgramId) && activeProgram && (
+      {((isEditing || createdProgramId) && activeProgram) && (
         <div className="space-y-6">
           <ScheduleItemsManager
             programId={activeProgram.id}
