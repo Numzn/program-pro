@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
+from datetime import datetime
 from app.database.connection import get_db
 from app.models.database import Program, ScheduleItem, SpecialGuest, Church
 from app.models.schemas import (
@@ -63,6 +64,48 @@ async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
             # Fallback: order by id
             special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).order_by(SpecialGuest.id).all()
         
+        # Build response - provide defaults for missing columns
+        schedule_items_data = []
+        for si in schedule_items:
+            try:
+                # Use getattr with defaults for columns that might not exist yet
+                item_dict = {
+                    "id": si.id,
+                    "program_id": si.program_id,
+                    "title": si.title,
+                    "description": getattr(si, 'description', None),
+                    "start_time": getattr(si, 'start_time', None),
+                    "duration_minutes": getattr(si, 'duration_minutes', None),
+                    "order_index": getattr(si, 'order_index', 0),
+                    "type": getattr(si, 'type', 'worship'),  # Default to 'worship' if column doesn't exist
+                    "created_at": getattr(si, 'created_at', None) or datetime.now()
+                }
+                schedule_items_data.append(ScheduleItemResponse.model_validate(item_dict))
+            except Exception as e:
+                logger.warning("Error validating schedule item", exc_info=True, extra={"item_id": getattr(si, 'id', None)})
+                # Skip this item if validation fails
+                continue
+        
+        special_guests_data = []
+        for sg in special_guests:
+            try:
+                guest_dict = {
+                    "id": sg.id,
+                    "program_id": sg.program_id,
+                    "name": sg.name,
+                    "role": getattr(sg, 'role', None),
+                    "description": getattr(sg, 'description', None),
+                    "bio": getattr(sg, 'bio', None),
+                    "photo_url": getattr(sg, 'photo_url', None),
+                    "display_order": getattr(sg, 'display_order', 0),  # Default to 0 if column doesn't exist
+                    "created_at": getattr(sg, 'created_at', None) or datetime.now()
+                }
+                special_guests_data.append(SpecialGuestResponse.model_validate(guest_dict))
+            except Exception as e:
+                logger.warning("Error validating special guest", exc_info=True, extra={"guest_id": getattr(sg, 'id', None)})
+                # Skip this guest if validation fails
+                continue
+        
         # Build response
         program_dict = {
             "id": program.id,
@@ -71,8 +114,8 @@ async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
             "date": program.date,
             "theme": program.theme,
             "created_at": program.created_at,
-            "schedule_items": [ScheduleItemResponse.model_validate(si) for si in schedule_items],
-            "special_guests": [SpecialGuestResponse.model_validate(sg) for sg in special_guests]
+            "schedule_items": schedule_items_data,
+            "special_guests": special_guests_data
         }
         
         return create_api_response(data=program_dict)
