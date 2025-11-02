@@ -269,26 +269,47 @@ async def add_schedule_item(
     db: Session = Depends(get_db)
 ):
     """Add a schedule item to a program."""
-    # Verify program exists
-    program = db.query(Program).filter(Program.id == program_id).first()
-    if not program:
-        return create_api_response(error="Program not found")
+    try:
+        # Verify program exists
+        program = db.query(Program).filter(Program.id == program_id).first()
+        if not program:
+            return create_api_response(error="Program not found")
+        
+        # Log received data for debugging
+        logger.info("Adding schedule item", extra={
+            "program_id": program_id,
+            "title": item_data.title,
+            "has_start_time": item_data.start_time is not None,
+            "has_description": item_data.description is not None,
+            "order_index": item_data.order_index,
+            "type": item_data.type
+        })
+        
+        schedule_item = ScheduleItem(
+            program_id=program_id,
+            title=item_data.title,
+            description=item_data.description,
+            start_time=item_data.start_time,
+            duration_minutes=item_data.duration_minutes,
+            order_index=item_data.order_index if item_data.order_index is not None else 0,
+            type=item_data.type if item_data.type else "worship"
+        )
+        db.add(schedule_item)
+        db.commit()
+        db.refresh(schedule_item)
+        
+        schedule_item_response = ScheduleItemResponse.model_validate(schedule_item)
+        return create_api_response(data=schedule_item_response)
     
-    schedule_item = ScheduleItem(
-        program_id=program_id,
-        title=item_data.title,
-        description=item_data.description,
-        start_time=item_data.start_time,
-        duration_minutes=item_data.duration_minutes,
-        order_index=item_data.order_index if item_data.order_index is not None else 0,
-        type=item_data.type if item_data.type else "worship"
-    )
-    db.add(schedule_item)
-    db.commit()
-    db.refresh(schedule_item)
-    
-    schedule_item_response = ScheduleItemResponse.model_validate(schedule_item)
-    return create_api_response(data=schedule_item_response)
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error("Database error adding schedule item", exc_info=True, extra={"program_id": program_id})
+        return create_api_response(error="Database error occurred while adding schedule item")
+    except Exception as e:
+        if db:
+            db.rollback()
+        logger.error("Error adding schedule item", exc_info=True, extra={"program_id": program_id, "error": str(e)})
+        return create_api_response(error=f"Failed to add schedule item: {str(e)}")
 
 
 @router.post("/{program_id}/guests")

@@ -5,9 +5,30 @@ from fastapi.encoders import jsonable_encoder
 
 
 async def validation_exception_handler(_request: Request, exc: RequestValidationError):
+    # Log validation errors for debugging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning("Validation error", extra={
+        "errors": exc.errors(),
+        "body": exc.body if hasattr(exc, 'body') else None,
+        "url": str(_request.url)
+    })
+    
+    # Format errors for frontend
+    error_messages = []
+    for error in exc.errors():
+        field = " -> ".join(str(loc) for loc in error.get("loc", []))
+        msg = error.get("msg", "Invalid value")
+        error_messages.append(f"{field}: {msg}")
+    
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=jsonable_encoder({"success": False, "message": "Validation error", "errors": exc.errors()}),
+        content=jsonable_encoder({
+            "success": False, 
+            "message": "Validation error", 
+            "error": "; ".join(error_messages),
+            "errors": exc.errors()
+        }),
     )
 
 

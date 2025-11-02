@@ -115,7 +115,7 @@ const ScheduleItemsManager: React.FC<ScheduleItemsManagerProps> = ({
     if (!newItem.title.trim()) return
 
     try {
-      // Clean up the data before sending
+      // Clean up the data before sending - only include fields with actual values
       // Convert time string to datetime - use current date as base
       let startTime: string | undefined = undefined
       if (newItem.start_time.trim()) {
@@ -123,10 +123,21 @@ const ScheduleItemsManager: React.FC<ScheduleItemsManagerProps> = ({
         startTime = new Date(`${today}T${newItem.start_time}`).toISOString()
       }
       
-      const cleanedItem = {
-        ...newItem,
-        start_time: startTime,
-        description: newItem.description.trim() || undefined
+      // Build clean item object with only defined values
+      const cleanedItem: any = {
+        title: newItem.title.trim(),
+        type: newItem.type || 'worship'
+      }
+      
+      // Only include optional fields if they have values
+      if (startTime) {
+        cleanedItem.start_time = startTime
+      }
+      if (newItem.description.trim()) {
+        cleanedItem.description = newItem.description.trim()
+      }
+      if (newItem.order_index !== undefined && newItem.order_index !== null) {
+        cleanedItem.order_index = newItem.order_index
       }
       
       await onAdd(cleanedItem)
