@@ -361,26 +361,83 @@ async def add_special_guest(
     db: Session = Depends(get_db)
 ):
     """Add a special guest to a program."""
-    # Verify program exists
-    program = db.query(Program).filter(Program.id == program_id).first()
-    if not program:
-        return create_api_response(error="Program not found")
+    try:
+        # Verify program exists
+        program = db.query(Program).filter(Program.id == program_id).first()
+        if not program:
+            return create_api_response(error="Program not found")
+        
+        # Log received data for debugging
+        logger.info("Adding special guest", extra={
+            "program_id": program_id,
+            "name": guest_data.name,
+            "has_role": guest_data.role is not None,
+            "has_bio": guest_data.bio is not None,
+            "has_photo_url": guest_data.photo_url is not None,
+            "display_order": guest_data.display_order
+        })
+        
+        # Build special guest with safe attribute setting
+        special_guest = SpecialGuest(
+            program_id=program_id,
+            name=guest_data.name,
+            role=guest_data.role,
+            description=guest_data.description,
+            bio=guest_data.bio,
+            photo_url=guest_data.photo_url,
+            display_order=guest_data.display_order if guest_data.display_order is not None else 0
+        )
+        
+        db.add(special_guest)
+        
+        try:
+            db.commit()
+            db.refresh(special_guest)
+        except SQLAlchemyError as commit_error:
+            db.rollback()
+            # Capture the actual database error message
+            error_msg = str(commit_error.orig) if hasattr(commit_error, 'orig') else str(commit_error)
+            logger.error("Database error during commit", exc_info=True, extra={
+                "program_id": program_id,
+                "error": error_msg,
+                "error_type": type(commit_error).__name__
+            })
+            return create_api_response(error=f"Database error: {error_msg}")
+        
+        # Build response safely
+        try:
+            special_guest_response = SpecialGuestResponse.model_validate(special_guest)
+            return create_api_response(data=special_guest_response)
+        except Exception as validation_error:
+            logger.warning("Error validating special guest response", exc_info=True, extra={
+                "program_id": program_id,
+                "guest_id": special_guest.id
+            })
+            # Return basic success even if validation fails
+            return create_api_response(data={
+                "id": special_guest.id,
+                "program_id": special_guest.program_id,
+                "name": special_guest.name
+            })
     
-    special_guest = SpecialGuest(
-        program_id=program_id,
-        name=guest_data.name,
-        role=guest_data.role,
-        description=guest_data.description,
-        bio=guest_data.bio,
-        photo_url=guest_data.photo_url,
-        display_order=guest_data.display_order if guest_data.display_order is not None else 0
-    )
-    db.add(special_guest)
-    db.commit()
-    db.refresh(special_guest)
-    
-    special_guest_response = SpecialGuestResponse.model_validate(special_guest)
-    return create_api_response(data=special_guest_response)
+    except SQLAlchemyError as e:
+        db.rollback()
+        error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
+        logger.error("Database error adding special guest", exc_info=True, extra={
+            "program_id": program_id,
+            "error": error_msg,
+            "error_type": type(e).__name__
+        })
+        return create_api_response(error=f"Database error: {error_msg}")
+    except Exception as e:
+        if db:
+            db.rollback()
+        logger.error("Error adding special guest", exc_info=True, extra={
+            "program_id": program_id,
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
+        return create_api_response(error=f"Failed to add special guest: {str(e)}")
 
 
 @router.delete("/{program_id}/schedule/{item_id}")
