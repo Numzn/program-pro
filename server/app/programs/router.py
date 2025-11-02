@@ -7,7 +7,7 @@ from app.models.schemas import (
     ProgramCreate, ProgramUpdate, ProgramResponse, ProgramWithDetailsResponse,
     ScheduleItemCreate, ScheduleItemResponse,
     SpecialGuestCreate, SpecialGuestResponse,
-    SuccessResponse
+    SuccessResponse, create_api_response
 )
 from app.auth.middleware import get_current_user
 from app.models.database import User
@@ -15,7 +15,7 @@ from app.models.database import User
 router = APIRouter()
 
 
-@router.get("/", response_model=List[ProgramResponse])
+@router.get("/")
 async def get_programs(
     church_id: Optional[int] = None,
     is_active: Optional[bool] = None,
@@ -30,18 +30,16 @@ async def get_programs(
     # Note: is_active is not a database field yet, might need migration
     # For now, we'll just return all programs
     programs = query.order_by(Program.date.desc()).all()
-    return programs
+    programs_data = [ProgramResponse.model_validate(p) for p in programs]
+    return create_api_response(data=programs_data)
 
 
-@router.get("/{program_id}", response_model=ProgramWithDetailsResponse)
+@router.get("/{program_id}")
 async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
     """Get a single program with all details."""
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Program not found"
-        )
+        return create_api_response(error="Program not found")
     
     # Load related data
     schedule_items = db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).order_by(ScheduleItem.order_index).all()
@@ -55,31 +53,35 @@ async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
         "date": program.date,
         "theme": program.theme,
         "created_at": program.created_at,
-        "schedule_items": schedule_items,
-        "special_guests": special_guests
+        "schedule_items": [ScheduleItemResponse.model_validate(si) for si in schedule_items],
+        "special_guests": [SpecialGuestResponse.model_validate(sg) for sg in special_guests]
     }
     
-    return program_dict
+    return create_api_response(data=program_dict)
 
 
-@router.post("/", response_model=ProgramResponse)
+@router.post("/")
 async def create_program(
     program_data: ProgramCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Create a new program."""
+    # Use user's church_id if not provided
+    church_id = program_data.church_id
+    if not church_id:
+        if not current_user.church_id:
+            return create_api_response(error="User has no associated church")
+        church_id = current_user.church_id
+    
     # Verify church exists
-    church = db.query(Church).filter(Church.id == program_data.church_id).first()
+    church = db.query(Church).filter(Church.id == church_id).first()
     if not church:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Church not found"
-        )
+        return create_api_response(error="Church not found")
     
     # Create program
     program = Program(
-        church_id=program_data.church_id,
+        church_id=church_id,
         title=program_data.title,
         date=program_data.date,
         theme=program_data.theme
@@ -88,10 +90,11 @@ async def create_program(
     db.commit()
     db.refresh(program)
     
-    return program
+    program_response = ProgramResponse.model_validate(program)
+    return create_api_response(data=program_response)
 
 
-@router.put("/{program_id}", response_model=ProgramResponse)
+@router.put("/{program_id}")
 async def update_program(
     program_id: int,
     program_data: ProgramUpdate,
@@ -101,10 +104,7 @@ async def update_program(
     """Update an existing program."""
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Program not found"
-        )
+        return create_api_response(error="Program not found")
     
     # Update fields
     if program_data.title is not None:
@@ -117,10 +117,11 @@ async def update_program(
     db.commit()
     db.refresh(program)
     
-    return program
+    program_response = ProgramResponse.model_validate(program)
+    return create_api_response(data=program_response)
 
 
-@router.delete("/{program_id}", response_model=SuccessResponse)
+@router.delete("/{program_id}")
 async def delete_program(
     program_id: int,
     current_user: User = Depends(get_current_user),
@@ -129,10 +130,7 @@ async def delete_program(
     """Delete a program and all related data."""
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Program not found"
-        )
+        return create_api_response(error="Program not found")
     
     # Delete related data first
     db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).delete()
@@ -142,10 +140,10 @@ async def delete_program(
     db.delete(program)
     db.commit()
     
-    return SuccessResponse(success=True, message="Program deleted successfully")
+    return create_api_response(message="Program deleted successfully")
 
 
-@router.post("/{program_id}/schedule", response_model=ScheduleItemResponse)
+@router.post("/{program_id}/schedule")
 async def add_schedule_item(
     program_id: int,
     item_data: ScheduleItemCreate,
@@ -156,10 +154,7 @@ async def add_schedule_item(
     # Verify program exists
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Program not found"
-        )
+        return create_api_response(error="Program not found")
     
     schedule_item = ScheduleItem(
         program_id=program_id,
@@ -173,10 +168,11 @@ async def add_schedule_item(
     db.commit()
     db.refresh(schedule_item)
     
-    return schedule_item
+    schedule_item_response = ScheduleItemResponse.model_validate(schedule_item)
+    return create_api_response(data=schedule_item_response)
 
 
-@router.post("/{program_id}/guests", response_model=SpecialGuestResponse)
+@router.post("/{program_id}/guests")
 async def add_special_guest(
     program_id: int,
     guest_data: SpecialGuestCreate,
@@ -187,10 +183,7 @@ async def add_special_guest(
     # Verify program exists
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Program not found"
-        )
+        return create_api_response(error="Program not found")
     
     special_guest = SpecialGuest(
         program_id=program_id,
@@ -202,10 +195,11 @@ async def add_special_guest(
     db.commit()
     db.refresh(special_guest)
     
-    return special_guest
+    special_guest_response = SpecialGuestResponse.model_validate(special_guest)
+    return create_api_response(data=special_guest_response)
 
 
-@router.post("/bulk-import", response_model=ProgramWithDetailsResponse)
+@router.post("/bulk-import")
 async def bulk_import_program(
     program_data: dict,
     current_user: User = Depends(get_current_user),
@@ -217,10 +211,7 @@ async def bulk_import_program(
     # Get or create church for user
     church = db.query(Church).filter(Church.id == current_user.church_id).first()
     if not church:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User has no associated church"
-        )
+        return create_api_response(error="User has no associated church")
     
     # Create program
     program = Program(
@@ -263,14 +254,16 @@ async def bulk_import_program(
     schedule_items_db = db.query(ScheduleItem).filter(ScheduleItem.program_id == program.id).all()
     guests_db = db.query(SpecialGuest).filter(SpecialGuest.program_id == program.id).all()
     
-    return {
+    program_dict = {
         "id": program.id,
         "church_id": program.church_id,
         "title": program.title,
         "date": program.date,
         "theme": program.theme,
         "created_at": program.created_at,
-        "schedule_items": schedule_items_db,
-        "special_guests": guests_db
+        "schedule_items": [ScheduleItemResponse.model_validate(si) for si in schedule_items_db],
+        "special_guests": [SpecialGuestResponse.model_validate(sg) for sg in guests_db]
     }
+    
+    return create_api_response(data=program_dict)
 

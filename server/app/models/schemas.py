@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 
 
@@ -44,6 +44,24 @@ class SuccessResponse(BaseModel):
     message: str
 
 
+# Generic API Response schema
+class ApiResponse(BaseModel):
+    success: bool
+    data: Optional[Any] = None
+    error: Optional[str] = None
+    message: Optional[str] = None
+
+
+def create_api_response(data: Any = None, error: str = None, message: str = None) -> dict:
+    """Helper function to create standardized API responses."""
+    return {
+        "success": error is None,
+        "data": data,
+        "error": error,
+        "message": message
+    }
+
+
 # Program schemas
 class ProgramBase(BaseModel):
     title: str
@@ -52,7 +70,7 @@ class ProgramBase(BaseModel):
 
 
 class ProgramCreate(ProgramBase):
-    church_id: int
+    church_id: Optional[int] = None  # Optional, will use user's church_id if not provided
 
 
 class ProgramUpdate(BaseModel):
