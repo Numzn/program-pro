@@ -327,9 +327,16 @@ async def add_schedule_item(
         # Build and execute parameterized SQL
         try:
             sql = f"INSERT INTO schedule_items ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+            logger.info("Executing SQL INSERT", extra={
+                "sql": sql,
+                "params": params,
+                "columns_to_insert": insert_cols,
+                "existing_columns": columns
+            })
             result = db.execute(text(sql), params)
             item_id = result.scalar()
             db.commit()
+            logger.info("Schedule item created successfully", extra={"item_id": item_id})
             
             # Fetch the created item
             schedule_item = db.query(ScheduleItem).filter(ScheduleItem.id == item_id).first()
@@ -445,9 +452,16 @@ async def add_special_guest(
         # Build and execute parameterized SQL
         try:
             sql = f"INSERT INTO special_guests ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+            logger.info("Executing SQL INSERT", extra={
+                "sql": sql,
+                "params": params,
+                "columns_to_insert": insert_cols,
+                "existing_columns": columns
+            })
             result = db.execute(text(sql), params)
             guest_id = result.scalar()
             db.commit()
+            logger.info("Special guest created successfully", extra={"guest_id": guest_id})
             
             # Fetch the created guest
             special_guest = db.query(SpecialGuest).filter(SpecialGuest.id == guest_id).first()
