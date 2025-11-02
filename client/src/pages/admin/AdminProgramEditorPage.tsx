@@ -22,9 +22,11 @@ const AdminProgramEditorPage: React.FC = () => {
     createProgram, 
     updateProgram,
     addScheduleItem,
+    updateScheduleItem,
     deleteScheduleItem,
     reorderScheduleItems,
     addSpecialGuest,
+    updateSpecialGuest,
     deleteSpecialGuest,
     reorderSpecialGuests
   } = useProgramStore()
@@ -189,6 +191,14 @@ const AdminProgramEditorPage: React.FC = () => {
                 toast.error(error.message || 'Failed to add schedule item')
               }
             }}
+            onUpdate={async (itemId, item) => {
+              try {
+                await updateScheduleItem(activeProgram.id, itemId, item)
+                toast.success('Schedule item updated successfully')
+              } catch (error: any) {
+                toast.error(error.message || 'Failed to update schedule item')
+              }
+            }}
             onDelete={async (itemId) => {
               try {
                 await deleteScheduleItem(activeProgram.id, itemId)
@@ -216,6 +226,14 @@ const AdminProgramEditorPage: React.FC = () => {
                 toast.success('Special guest added successfully')
               } catch (error: any) {
                 toast.error(error.message || 'Failed to add special guest')
+              }
+            }}
+            onUpdate={async (guestId, guest) => {
+              try {
+                await updateSpecialGuest(activeProgram.id, guestId, guest)
+                toast.success('Special guest updated successfully')
+              } catch (error: any) {
+                toast.error(error.message || 'Failed to update special guest')
               }
             }}
             onDelete={async (guestId) => {
