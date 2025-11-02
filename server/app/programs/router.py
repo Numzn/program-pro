@@ -43,27 +43,43 @@ async def get_programs(
 @router.get("/{program_id}")
 async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
     """Get a single program with all details."""
-    program = db.query(Program).filter(Program.id == program_id).first()
-    if not program:
-        return create_api_response(error="Program not found")
+    try:
+        program = db.query(Program).filter(Program.id == program_id).first()
+        if not program:
+            return create_api_response(error="Program not found")
+        
+        # Load related data - handle missing columns gracefully
+        try:
+            schedule_items = db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).order_by(ScheduleItem.order_index).all()
+        except Exception as e:
+            logger.warning("Error ordering schedule_items by order_index - column may not exist", exc_info=True, extra={"program_id": program_id})
+            # Fallback: order by id
+            schedule_items = db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).order_by(ScheduleItem.id).all()
+        
+        try:
+            special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).order_by(SpecialGuest.display_order).all()
+        except Exception as e:
+            logger.warning("Error ordering special_guests by display_order - column may not exist", exc_info=True, extra={"program_id": program_id})
+            # Fallback: order by id
+            special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).order_by(SpecialGuest.id).all()
+        
+        # Build response
+        program_dict = {
+            "id": program.id,
+            "church_id": program.church_id,
+            "title": program.title,
+            "date": program.date,
+            "theme": program.theme,
+            "created_at": program.created_at,
+            "schedule_items": [ScheduleItemResponse.model_validate(si) for si in schedule_items],
+            "special_guests": [SpecialGuestResponse.model_validate(sg) for sg in special_guests]
+        }
+        
+        return create_api_response(data=program_dict)
     
-    # Load related data
-    schedule_items = db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).order_by(ScheduleItem.order_index).all()
-    special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).order_by(SpecialGuest.display_order).all()
-    
-    # Build response
-    program_dict = {
-        "id": program.id,
-        "church_id": program.church_id,
-        "title": program.title,
-        "date": program.date,
-        "theme": program.theme,
-        "created_at": program.created_at,
-        "schedule_items": [ScheduleItemResponse.model_validate(si) for si in schedule_items],
-        "special_guests": [SpecialGuestResponse.model_validate(sg) for sg in special_guests]
-    }
-    
-    return create_api_response(data=program_dict)
+    except Exception as e:
+        logger.error("Error fetching program by ID", exc_info=True, extra={"program_id": program_id})
+        return create_api_response(error="Failed to fetch program details")
 
 
 @router.post("/")
@@ -304,7 +320,11 @@ async def update_schedule_item(
     if item_data.duration_minutes is not None:
         schedule_item.duration_minutes = item_data.duration_minutes
     if item_data.order_index is not None:
-        schedule_item.order_index = item_data.order_index
+        try:
+            schedule_item.order_index = item_data.order_index
+        except AttributeError:
+            logger.warning("Cannot set order_index - column may not exist")
+            pass
     if item_data.type is not None:
         schedule_item.type = item_data.type
     
@@ -343,14 +363,26 @@ async def reorder_schedule_items(
             ).first()
             
             if schedule_item:
-                schedule_item.order_index = order_index
+                try:
+                    schedule_item.order_index = order_index
+                except AttributeError:
+                    # Column doesn't exist yet - skip setting order_index
+                    logger.warning("Cannot set order_index - column may not exist", extra={"item_id": item_id})
+                    pass
         
         db.commit()
         
-        # Return updated schedule items
-        schedule_items = db.query(ScheduleItem).filter(
-            ScheduleItem.program_id == program_id
-        ).order_by(ScheduleItem.order_index).all()
+        # Return updated schedule items - handle missing order_index column gracefully
+        try:
+            schedule_items = db.query(ScheduleItem).filter(
+                ScheduleItem.program_id == program_id
+            ).order_by(ScheduleItem.order_index).all()
+        except Exception as e:
+            logger.warning("Error ordering schedule_items by order_index - column may not exist", exc_info=True, extra={"program_id": program_id})
+            # Fallback: order by id
+            schedule_items = db.query(ScheduleItem).filter(
+                ScheduleItem.program_id == program_id
+            ).order_by(ScheduleItem.id).all()
         
         items_data = [ScheduleItemResponse.model_validate(si) for si in schedule_items]
         return create_api_response(data=items_data)
@@ -424,7 +456,11 @@ async def update_special_guest(
     if guest_data.photo_url is not None:
         special_guest.photo_url = guest_data.photo_url
     if guest_data.display_order is not None:
-        special_guest.display_order = guest_data.display_order
+        try:
+            special_guest.display_order = guest_data.display_order
+        except AttributeError:
+            logger.warning("Cannot set display_order - column may not exist")
+            pass
     
     db.commit()
     db.refresh(special_guest)
@@ -461,14 +497,26 @@ async def reorder_special_guests(
             ).first()
             
             if special_guest:
-                special_guest.display_order = display_order
+                try:
+                    special_guest.display_order = display_order
+                except AttributeError:
+                    # Column doesn't exist yet - skip setting display_order
+                    logger.warning("Cannot set display_order - column may not exist", extra={"guest_id": guest_id})
+                    pass
         
         db.commit()
         
-        # Return updated guests
-        special_guests = db.query(SpecialGuest).filter(
-            SpecialGuest.program_id == program_id
-        ).order_by(SpecialGuest.display_order).all()
+        # Return updated guests - handle missing display_order column gracefully
+        try:
+            special_guests = db.query(SpecialGuest).filter(
+                SpecialGuest.program_id == program_id
+            ).order_by(SpecialGuest.display_order).all()
+        except Exception as e:
+            logger.warning("Error ordering special_guests by display_order - column may not exist", exc_info=True, extra={"program_id": program_id})
+            # Fallback: order by id
+            special_guests = db.query(SpecialGuest).filter(
+                SpecialGuest.program_id == program_id
+            ).order_by(SpecialGuest.id).all()
         
         guests_data = [SpecialGuestResponse.model_validate(sg) for sg in special_guests]
         return create_api_response(data=guests_data)
