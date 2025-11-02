@@ -832,7 +832,9 @@ async def bulk_import_program(
         church_id=church.id,
         title=program_data.get("title", "Untitled Program"),
         date=program_data.get("date"),
-        theme=program_data.get("theme")
+        theme=program_data.get("theme"),
+        is_active=program_data.get("is_active", True),
+        created_by=current_user.id
     )
     db.add(program)
     db.commit()
@@ -877,6 +879,7 @@ async def bulk_import_program(
         "title": program.title,
         "date": program.date,
         "theme": program.theme,
+        "is_active": program.is_active,
         "created_at": program.created_at,
         "schedule_items": [ScheduleItemResponse.model_validate(si) for si in schedule_items_db],
         "special_guests": [SpecialGuestResponse.model_validate(sg) for sg in guests_db]
