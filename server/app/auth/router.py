@@ -1,5 +1,7 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from app.database.connection import get_db
 from app.models.database import User, Church
 from app.models.schemas import (
@@ -13,30 +15,70 @@ from app.auth.jwt_handler import (
 )
 from app.config import settings
 
-
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 @router.post("/login", response_model=LoginResponse)
 async def login(credentials: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == credentials.username).first()
-    if not user or not verify_password(credentials.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    try:
+        logger.info("Login attempt", extra={"username": credentials.username})
+        
+        # Query user from database
+        user = db.query(User).filter(User.username == credentials.username).first()
+        
+        # Check if user exists and password is valid
+        if not user:
+            logger.warning("Login failed: user not found", extra={"username": credentials.username})
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+        
+        # Verify password
+        password_valid = verify_password(credentials.password, user.password_hash)
+        if not password_valid:
+            logger.warning("Login failed: invalid password", extra={"username": credentials.username})
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+        
+        # Generate tokens
+        access_token = create_access_token({"sub": user.username, "user_id": user.id})
+        refresh_token = create_refresh_token({"sub": user.username, "user_id": user.id})
 
-    access_token = create_access_token({"sub": user.username, "user_id": user.id})
-    refresh_token = create_refresh_token({"sub": user.username, "user_id": user.id})
+        # Set refresh token cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=settings.ENVIRONMENT == "production",
+            samesite="strict",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        )
 
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=settings.ENVIRONMENT == "production",
-        samesite="strict",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-    )
-
-    user_data = UserResponse.model_validate(user)
-    return LoginResponse(success=True, data={"user": user_data.model_dump()}, accessToken=access_token)
+        user_data = UserResponse.model_validate(user)
+        logger.info("Login successful", extra={"username": user.username, "user_id": user.id})
+        return LoginResponse(success=True, data={"user": user_data.model_dump()}, accessToken=access_token)
+    
+    except HTTPException:
+        # Re-raise HTTP exceptions (401 for invalid credentials)
+        raise
+    except SQLAlchemyError as e:
+        # Database connection/query errors
+        logger.error("Database error during login", exc_info=True, extra={"username": credentials.username})
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication service unavailable"
+        )
+    except Exception as e:
+        # Unexpected errors
+        logger.error("Unexpected error during login", exc_info=True, extra={"username": credentials.username})
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication failed"
+        )
 
 
 @router.post("/refresh", response_model=RefreshResponse)

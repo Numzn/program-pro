@@ -1,6 +1,9 @@
+import logging
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from starlette.middleware import ProxyHeadersMiddleware
 from app.database.migrations import run_migrations
+from app.database.init_data import ensure_admin_user
 from app.middleware.cors import setup_cors
 from app.middleware.error_handler import validation_exception_handler, general_exception_handler
 from app.auth.router import router as auth_router
@@ -9,8 +12,18 @@ from app.church.router import router as church_router
 from app.templates.router import router as templates_router
 from app.config import settings
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 
 app = FastAPI(title="Church Program Pro API", version="1.0.0")
+
+# Trust proxy headers (must be before CORS middleware)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 setup_cors(app)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
@@ -27,11 +40,23 @@ app.include_router(templates_router, prefix="/api/v1/templates", tags=["template
 async def startup_event():
     try:
         # Run Alembic migrations to ensure database schema is up to date
+        logger.info("Running database migrations...")
         run_migrations(environment=settings.ENVIRONMENT)
+        logger.info("Database migrations completed successfully")
     except Exception as e:
         # Do not crash app on startup if migrations fail; log and continue
-        print(f"⚠️  Database migrations skipped due to error: {e}")
-        print("🔄 Server will continue, but database may be out of sync")
+        logger.warning(f"Database migrations skipped due to error: {e}")
+        logger.warning("Server will continue, but database may be out of sync")
+    
+    try:
+        # Ensure admin user exists
+        logger.info("Checking for admin user...")
+        ensure_admin_user()
+        logger.info("Admin user initialization completed")
+    except Exception as e:
+        # Do not crash app on startup if initialization fails; log and continue
+        logger.warning(f"Admin user initialization failed: {e}")
+        logger.warning("Server will continue, but admin user may not exist")
 
 
 @app.get("/")
