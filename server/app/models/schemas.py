@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List, Any
+from pydantic import BaseModel, EmailStr, Field, field_validator
+from typing import Optional, List, Any, Union
 from datetime import datetime
 
 
@@ -88,6 +88,32 @@ class ScheduleItemBase(BaseModel):
     duration_minutes: Optional[int] = None
     order_index: Optional[int] = None
     type: Optional[str] = "worship"  # worship, sermon, announcement, special
+
+    @field_validator('start_time', mode='before')
+    @classmethod
+    def parse_start_time(cls, v):
+        """Handle start_time conversion from string to datetime, or None for empty values."""
+        if v is None or v == "" or v == "null":
+            return None
+        if isinstance(v, str):
+            try:
+                # Try parsing ISO format datetime string
+                return datetime.fromisoformat(v.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                # If parsing fails, return None instead of raising error
+                return None
+        return v
+
+    @field_validator('order_index', mode='before')
+    @classmethod
+    def parse_order_index(cls, v):
+        """Handle order_index conversion, defaulting to 0 if invalid."""
+        if v is None or v == "":
+            return 0
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return 0
 
 
 class ScheduleItemCreate(ScheduleItemBase):

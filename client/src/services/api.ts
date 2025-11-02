@@ -66,6 +66,16 @@ class ApiService {
             data: error.response.data,
             message: error.message
           })
+          
+          // For 422 errors, log detailed validation errors
+          if (error.response.status === 422 && error.response.data) {
+            console.error('🚨 Validation Errors:', JSON.stringify(error.response.data, null, 2))
+            if (error.response.data.errors) {
+              error.response.data.errors.forEach((err: any) => {
+                console.error(`  - ${err.loc?.join('.')}: ${err.msg}`)
+              })
+            }
+          }
         } else if (error.request) {
           console.error('❌ API Request Error (no response):', {
             url: error.config?.url,
@@ -277,12 +287,27 @@ class ApiService {
   }
 
   async addScheduleItem(programId: number, data: any): Promise<any> {
-    const response = await this.api.post<ApiResponse>(`/programs/${programId}/schedule`, data)
-    
-    if (response.data.success && response.data.data) {
-      return response.data.data
+    console.log('📤 Adding schedule item:', { programId, data })
+    try {
+      const response = await this.api.post<ApiResponse>(`/programs/${programId}/schedule`, data)
+      
+      if (response.data.success && response.data.data) {
+        return response.data.data
+      }
+      throw new Error(response.data.error || 'Failed to add schedule item')
+    } catch (error: any) {
+      // Log full error details for debugging
+      if (error.response?.data) {
+        console.error('🚨 Schedule item validation error:', {
+          status: error.response.status,
+          error: error.response.data.error,
+          message: error.response.data.message,
+          errors: error.response.data.errors,
+          fullResponse: error.response.data
+        })
+      }
+      throw error
     }
-    throw new Error(response.data.error || 'Failed to add schedule item')
   }
 
   async updateScheduleItem(programId: number, itemId: number, data: any): Promise<any> {
