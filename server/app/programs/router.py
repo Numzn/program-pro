@@ -31,8 +31,9 @@ async def get_programs(
     if church_id:
         query = query.filter(Program.church_id == church_id)
     
-    # Note: is_active is not a database field yet, might need migration
-    # For now, we'll just return all programs
+    if is_active is not None:
+        query = query.filter(Program.is_active == is_active)
+    
     programs = query.order_by(Program.date.desc()).all()
     programs_data = [ProgramResponse.model_validate(p) for p in programs]
     return create_api_response(data=programs_data)
@@ -98,7 +99,8 @@ async def create_program(
             church_id=church_id,
             title=program_data.title,
             date=program_data.date,
-            theme=program_data.theme
+            theme=program_data.theme,
+            is_active=program_data.is_active if program_data.is_active is not None else True
         )
         db.add(program)
         db.commit()
@@ -143,6 +145,8 @@ async def update_program(
         program.date = program_data.date
     if program_data.theme is not None:
         program.theme = program_data.theme
+    if program_data.is_active is not None:
+        program.is_active = program_data.is_active
     
     db.commit()
     db.refresh(program)

@@ -67,6 +67,7 @@ class ProgramBase(BaseModel):
     title: str
     date: Optional[datetime] = None
     theme: Optional[str] = None
+    is_active: Optional[bool] = True
 
 
 class ProgramCreate(ProgramBase):
@@ -77,6 +78,7 @@ class ProgramUpdate(BaseModel):
     title: Optional[str] = None
     date: Optional[datetime] = None
     theme: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 class ScheduleItemBase(BaseModel):
@@ -122,6 +124,7 @@ class SpecialGuestResponse(SpecialGuestBase):
 class ProgramResponse(ProgramBase):
     id: int
     church_id: int
+    is_active: bool  # Override base class to make it required (database always has value)
     created_at: datetime
 
     class Config:
