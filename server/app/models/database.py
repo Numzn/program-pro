@@ -48,6 +48,8 @@ class ScheduleItem(Base):
     start_time = Column(DateTime(timezone=True))
     duration_minutes = Column(Integer)
     order_index = Column(Integer)
+    type = Column(String(50), default="worship")  # worship, sermon, announcement, special
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class SpecialGuest(Base):
@@ -58,6 +60,10 @@ class SpecialGuest(Base):
     name = Column(String(255), nullable=False)
     role = Column(String(255))
     description = Column(Text)
+    bio = Column(Text)
+    photo_url = Column(String(500))
+    display_order = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class ProgramTemplate(Base):

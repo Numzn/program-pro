@@ -7,8 +7,9 @@ from app.database.connection import get_db
 from app.models.database import Program, ScheduleItem, SpecialGuest, Church
 from app.models.schemas import (
     ProgramCreate, ProgramUpdate, ProgramResponse, ProgramWithDetailsResponse,
-    ScheduleItemCreate, ScheduleItemResponse,
-    SpecialGuestCreate, SpecialGuestResponse,
+    ScheduleItemCreate, ScheduleItemUpdate, ScheduleItemResponse,
+    SpecialGuestCreate, SpecialGuestUpdate, SpecialGuestResponse,
+    ReorderItemsRequest, ReorderGuestsRequest,
     SuccessResponse, create_api_response
 )
 from app.auth.middleware import get_current_user
@@ -48,7 +49,7 @@ async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
     
     # Load related data
     schedule_items = db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).order_by(ScheduleItem.order_index).all()
-    special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).all()
+    special_guests = db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).order_by(SpecialGuest.display_order).all()
     
     # Build response
     program_dict = {
@@ -201,7 +202,8 @@ async def add_schedule_item(
         description=item_data.description,
         start_time=item_data.start_time,
         duration_minutes=item_data.duration_minutes,
-        order_index=item_data.order_index
+        order_index=item_data.order_index if item_data.order_index is not None else 0,
+        type=item_data.type if item_data.type else "worship"
     )
     db.add(schedule_item)
     db.commit()
@@ -228,7 +230,10 @@ async def add_special_guest(
         program_id=program_id,
         name=guest_data.name,
         role=guest_data.role,
-        description=guest_data.description
+        description=guest_data.description,
+        bio=guest_data.bio,
+        photo_url=guest_data.photo_url,
+        display_order=guest_data.display_order if guest_data.display_order is not None else 0
     )
     db.add(special_guest)
     db.commit()
@@ -236,6 +241,242 @@ async def add_special_guest(
     
     special_guest_response = SpecialGuestResponse.model_validate(special_guest)
     return create_api_response(data=special_guest_response)
+
+
+@router.delete("/{program_id}/schedule/{item_id}")
+async def delete_schedule_item(
+    program_id: int,
+    item_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a schedule item from a program."""
+    # Verify program exists
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        return create_api_response(error="Program not found")
+    
+    # Verify schedule item exists and belongs to program
+    schedule_item = db.query(ScheduleItem).filter(
+        ScheduleItem.id == item_id,
+        ScheduleItem.program_id == program_id
+    ).first()
+    
+    if not schedule_item:
+        return create_api_response(error="Schedule item not found")
+    
+    db.delete(schedule_item)
+    db.commit()
+    
+    return create_api_response(message="Schedule item deleted successfully")
+
+
+@router.put("/{program_id}/schedule/{item_id}")
+async def update_schedule_item(
+    program_id: int,
+    item_id: int,
+    item_data: ScheduleItemUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a schedule item."""
+    # Verify program exists
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        return create_api_response(error="Program not found")
+    
+    # Verify schedule item exists and belongs to program
+    schedule_item = db.query(ScheduleItem).filter(
+        ScheduleItem.id == item_id,
+        ScheduleItem.program_id == program_id
+    ).first()
+    
+    if not schedule_item:
+        return create_api_response(error="Schedule item not found")
+    
+    # Update fields
+    if item_data.title is not None:
+        schedule_item.title = item_data.title
+    if item_data.description is not None:
+        schedule_item.description = item_data.description
+    if item_data.start_time is not None:
+        schedule_item.start_time = item_data.start_time
+    if item_data.duration_minutes is not None:
+        schedule_item.duration_minutes = item_data.duration_minutes
+    if item_data.order_index is not None:
+        schedule_item.order_index = item_data.order_index
+    if item_data.type is not None:
+        schedule_item.type = item_data.type
+    
+    db.commit()
+    db.refresh(schedule_item)
+    
+    schedule_item_response = ScheduleItemResponse.model_validate(schedule_item)
+    return create_api_response(data=schedule_item_response)
+
+
+@router.put("/{program_id}/schedule/reorder")
+async def reorder_schedule_items(
+    program_id: int,
+    reorder_data: ReorderItemsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reorder schedule items for a program."""
+    # Verify program exists
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        return create_api_response(error="Program not found")
+    
+    try:
+        # Update order_index for each item
+        for item in reorder_data.items:
+            item_id = item.get("id")
+            order_index = item.get("order_index")
+            
+            if item_id is None or order_index is None:
+                continue
+            
+            schedule_item = db.query(ScheduleItem).filter(
+                ScheduleItem.id == item_id,
+                ScheduleItem.program_id == program_id
+            ).first()
+            
+            if schedule_item:
+                schedule_item.order_index = order_index
+        
+        db.commit()
+        
+        # Return updated schedule items
+        schedule_items = db.query(ScheduleItem).filter(
+            ScheduleItem.program_id == program_id
+        ).order_by(ScheduleItem.order_index).all()
+        
+        items_data = [ScheduleItemResponse.model_validate(si) for si in schedule_items]
+        return create_api_response(data=items_data)
+    
+    except Exception as e:
+        db.rollback()
+        logger.error("Error reordering schedule items", exc_info=True, extra={"program_id": program_id})
+        return create_api_response(error="Failed to reorder schedule items")
+
+
+@router.delete("/{program_id}/guests/{guest_id}")
+async def delete_special_guest(
+    program_id: int,
+    guest_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a special guest from a program."""
+    # Verify program exists
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        return create_api_response(error="Program not found")
+    
+    # Verify guest exists and belongs to program
+    special_guest = db.query(SpecialGuest).filter(
+        SpecialGuest.id == guest_id,
+        SpecialGuest.program_id == program_id
+    ).first()
+    
+    if not special_guest:
+        return create_api_response(error="Special guest not found")
+    
+    db.delete(special_guest)
+    db.commit()
+    
+    return create_api_response(message="Special guest deleted successfully")
+
+
+@router.put("/{program_id}/guests/{guest_id}")
+async def update_special_guest(
+    program_id: int,
+    guest_id: int,
+    guest_data: SpecialGuestUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a special guest."""
+    # Verify program exists
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        return create_api_response(error="Program not found")
+    
+    # Verify guest exists and belongs to program
+    special_guest = db.query(SpecialGuest).filter(
+        SpecialGuest.id == guest_id,
+        SpecialGuest.program_id == program_id
+    ).first()
+    
+    if not special_guest:
+        return create_api_response(error="Special guest not found")
+    
+    # Update fields
+    if guest_data.name is not None:
+        special_guest.name = guest_data.name
+    if guest_data.role is not None:
+        special_guest.role = guest_data.role
+    if guest_data.description is not None:
+        special_guest.description = guest_data.description
+    if guest_data.bio is not None:
+        special_guest.bio = guest_data.bio
+    if guest_data.photo_url is not None:
+        special_guest.photo_url = guest_data.photo_url
+    if guest_data.display_order is not None:
+        special_guest.display_order = guest_data.display_order
+    
+    db.commit()
+    db.refresh(special_guest)
+    
+    special_guest_response = SpecialGuestResponse.model_validate(special_guest)
+    return create_api_response(data=special_guest_response)
+
+
+@router.put("/{program_id}/guests/reorder")
+async def reorder_special_guests(
+    program_id: int,
+    reorder_data: ReorderGuestsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reorder special guests for a program."""
+    # Verify program exists
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        return create_api_response(error="Program not found")
+    
+    try:
+        # Update display_order for each guest
+        for guest in reorder_data.guests:
+            guest_id = guest.get("id")
+            display_order = guest.get("display_order")
+            
+            if guest_id is None or display_order is None:
+                continue
+            
+            special_guest = db.query(SpecialGuest).filter(
+                SpecialGuest.id == guest_id,
+                SpecialGuest.program_id == program_id
+            ).first()
+            
+            if special_guest:
+                special_guest.display_order = display_order
+        
+        db.commit()
+        
+        # Return updated guests
+        special_guests = db.query(SpecialGuest).filter(
+            SpecialGuest.program_id == program_id
+        ).order_by(SpecialGuest.display_order).all()
+        
+        guests_data = [SpecialGuestResponse.model_validate(sg) for sg in special_guests]
+        return create_api_response(data=guests_data)
+    
+    except Exception as e:
+        db.rollback()
+        logger.error("Error reordering special guests", exc_info=True, extra={"program_id": program_id})
+        return create_api_response(error="Failed to reorder special guests")
 
 
 @router.post("/bulk-import")
@@ -283,7 +524,10 @@ async def bulk_import_program(
             program_id=program.id,
             name=guest.get("name"),
             role=guest.get("role"),
-            description=guest.get("description")
+            description=guest.get("description"),
+            bio=guest.get("bio"),
+            photo_url=guest.get("photo_url"),
+            display_order=guest.get("display_order", 0)
         )
         db.add(special_guest)
     

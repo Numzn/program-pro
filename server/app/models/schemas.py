@@ -87,25 +87,56 @@ class ScheduleItemBase(BaseModel):
     start_time: Optional[datetime] = None
     duration_minutes: Optional[int] = None
     order_index: Optional[int] = None
+    type: Optional[str] = "worship"  # worship, sermon, announcement, special
 
 
 class ScheduleItemCreate(ScheduleItemBase):
     pass
 
 
+class ScheduleItemUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    start_time: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    order_index: Optional[int] = None
+    type: Optional[str] = None
+
+
+class ReorderItemsRequest(BaseModel):
+    items: List[dict]  # List of {id: int, order_index: int}
+
+
 class SpecialGuestBase(BaseModel):
     name: str
     role: Optional[str] = None
     description: Optional[str] = None
+    bio: Optional[str] = None
+    photo_url: Optional[str] = None
+    display_order: Optional[int] = 0
 
 
 class SpecialGuestCreate(SpecialGuestBase):
     pass
 
 
+class SpecialGuestUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    description: Optional[str] = None
+    bio: Optional[str] = None
+    photo_url: Optional[str] = None
+    display_order: Optional[int] = None
+
+
+class ReorderGuestsRequest(BaseModel):
+    guests: List[dict]  # List of {id: int, display_order: int}
+
+
 class ScheduleItemResponse(ScheduleItemBase):
     id: int
     program_id: int
+    type: str  # Override to make it required (database always has value)
     created_at: datetime
 
     class Config:
@@ -115,6 +146,7 @@ class ScheduleItemResponse(ScheduleItemBase):
 class SpecialGuestResponse(SpecialGuestBase):
     id: int
     program_id: int
+    display_order: int  # Override to make it required (database always has value)
     created_at: datetime
 
     class Config:
