@@ -14,6 +14,7 @@ const AdminProgramEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const isEditing = Boolean(id)
+  const [createdProgramId, setCreatedProgramId] = useState<number | null>(null)
   
   const { 
     activeProgram, 
@@ -68,11 +69,16 @@ const AdminProgramEditorPage: React.FC = () => {
       if (isEditing && id) {
         await updateProgram(parseInt(id), formData)
         toast.success('Program updated successfully')
+        // Stay on edit page - don't redirect so user can continue editing schedule/guests
       } else {
-        await createProgram(formData)
-        toast.success('Program created successfully')
+        // Create program and stay on page to allow adding schedule items and guests
+        const newProgram = await createProgram(formData)
+        toast.success('Program created successfully! You can now add schedule items and guests.')
+        // Set the created program ID so the managers appear
+        setCreatedProgramId(newProgram.id)
+        // Fetch the full program details to show in managers
+        await fetchProgramById(newProgram.id)
       }
-      navigate('/admin/programs')
     } catch (error: any) {
       toast.error(error.message || 'Failed to save program')
     }
@@ -96,13 +102,23 @@ const AdminProgramEditorPage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">
-          {isEditing ? 'Edit Program' : 'Create New Program'}
-        </h1>
-        <p className="text-muted-foreground">
-          {isEditing ? 'Update program details' : 'Set up a new church program'}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">
+            {isEditing ? 'Edit Program' : createdProgramId ? 'Program Created' : 'Create New Program'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isEditing ? 'Update program details' : createdProgramId ? 'Add schedule items and special guests below' : 'Set up a new church program'}
+          </p>
+        </div>
+        {createdProgramId && (
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin/programs')}
+          >
+            Done
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -178,7 +194,7 @@ const AdminProgramEditorPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {isEditing && activeProgram && (
+      {(isEditing || createdProgramId) && activeProgram && (
         <div className="space-y-6">
           <ScheduleItemsManager
             programId={activeProgram.id}

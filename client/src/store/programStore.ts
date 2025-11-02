@@ -66,8 +66,11 @@ export const useProgramStore = create<ProgramStore>((set) => ({
     set({ isLoading: true, error: null })
     try {
       const newProgram = await apiService.createProgram(data)
+      // Fetch full program details with schedule items and guests
+      const fullProgram = await apiService.getProgramById(newProgram.id)
       set(state => ({
         programs: [newProgram, ...state.programs],
+        activeProgram: fullProgram,
         isLoading: false
       }))
       return newProgram
