@@ -1,5 +1,7 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
 from app.database.connection import get_db
 from app.models.database import Program, ScheduleItem, SpecialGuest, Church
@@ -11,6 +13,8 @@ from app.models.schemas import (
 )
 from app.auth.middleware import get_current_user
 from app.models.database import User
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -67,31 +71,57 @@ async def create_program(
     db: Session = Depends(get_db)
 ):
     """Create a new program."""
-    # Use user's church_id if not provided
-    church_id = program_data.church_id
-    if not church_id:
-        if not current_user.church_id:
-            return create_api_response(error="User has no associated church")
-        church_id = current_user.church_id
+    try:
+        logger.info("Creating program", extra={
+            "user_id": current_user.id,
+            "title": program_data.title,
+            "church_id_provided": program_data.church_id is not None
+        })
+        
+        # Use user's church_id if not provided
+        church_id = program_data.church_id
+        if not church_id:
+            if not current_user.church_id:
+                logger.warning("User has no associated church", extra={"user_id": current_user.id})
+                return create_api_response(error="User has no associated church")
+            church_id = current_user.church_id
+            logger.info("Using user's church_id", extra={"church_id": church_id, "user_id": current_user.id})
+        
+        # Verify church exists
+        church = db.query(Church).filter(Church.id == church_id).first()
+        if not church:
+            logger.warning("Church not found", extra={"church_id": church_id})
+            return create_api_response(error="Church not found")
+        
+        # Create program
+        program = Program(
+            church_id=church_id,
+            title=program_data.title,
+            date=program_data.date,
+            theme=program_data.theme
+        )
+        db.add(program)
+        db.commit()
+        db.refresh(program)
+        
+        logger.info("Program created successfully", extra={
+            "program_id": program.id,
+            "title": program.title,
+            "church_id": church_id
+        })
+        
+        program_response = ProgramResponse.model_validate(program)
+        return create_api_response(data=program_response)
     
-    # Verify church exists
-    church = db.query(Church).filter(Church.id == church_id).first()
-    if not church:
-        return create_api_response(error="Church not found")
-    
-    # Create program
-    program = Program(
-        church_id=church_id,
-        title=program_data.title,
-        date=program_data.date,
-        theme=program_data.theme
-    )
-    db.add(program)
-    db.commit()
-    db.refresh(program)
-    
-    program_response = ProgramResponse.model_validate(program)
-    return create_api_response(data=program_response)
+    except SQLAlchemyError as e:
+        logger.error("Database error during program creation", exc_info=True, extra={"user_id": current_user.id})
+        db.rollback()
+        return create_api_response(error="Database error occurred while creating program")
+    except Exception as e:
+        logger.error("Unexpected error during program creation", exc_info=True, extra={"user_id": current_user.id})
+        if db:
+            db.rollback()
+        return create_api_response(error="Failed to create program")
 
 
 @router.put("/{program_id}")

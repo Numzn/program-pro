@@ -7,6 +7,7 @@ def setup_cors(app):
         CORSMiddleware,
         allow_origins=[
             settings.FRONTEND_URL,
+            "https://program-pro-1.onrender.com",  # Actual frontend URL
             "https://program-pro.onrender.com",
             "http://localhost:5173",
             "http://localhost:3000",
