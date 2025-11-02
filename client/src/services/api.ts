@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios'
 import { ApiResponse, User, Program, ProgramWithDetails } from '../types'
 import { useAuthStore } from '../store/authStore'
+import toast from 'react-hot-toast'
 
 class ApiService {
   private api: AxiosInstance
@@ -84,11 +85,22 @@ class ApiService {
         
         // Debug log to verify URL matching
         if (error.response?.status === 401) {
-          console.log('🔍 401 Error detected:', {
-            url: requestUrl,
-            isAuthEndpoint,
-            willRefresh: !isAuthEndpoint && !originalRequest._retry
+          console.log('🔐 Authentication failed:', {
+            url: error.config?.url,
+            response: error.response.data
           })
+          
+          // For auth endpoints (login, register), show notification and clear tokens
+          if (isAuthEndpoint) {
+            // Clear invalid tokens (using both old and new key names for compatibility)
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('userData')
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            
+            // Show user-friendly message
+            toast.error('Invalid email or password. Please try again.')
+          }
         }
         
         if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
@@ -128,6 +140,15 @@ class ApiService {
             // Refresh failed, clear state and redirect
             this.processQueue(refreshError)
             await useAuthStore.getState().logout()
+            
+            // Clear tokens from localStorage (using both old and new key names for compatibility)
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('userData')
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            
+            // Show notification
+            toast.error('Session expired. Please log in again.')
             
             // Only redirect if not already on login page
             if (window.location.pathname !== '/admin/login') {
