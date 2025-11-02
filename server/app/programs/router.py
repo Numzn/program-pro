@@ -276,7 +276,7 @@ async def add_schedule_item(
             return create_api_response(error="Program not found")
         
         # Check which columns exist in the database
-        from sqlalchemy import inspect
+        from sqlalchemy import inspect, text
         inspector = inspect(db.bind)
         columns = [col['name'] for col in inspector.get_columns('schedule_items')]
         
@@ -291,29 +291,48 @@ async def add_schedule_item(
             "existing_columns": columns
         })
         
-        # Build schedule item with only required fields
-        schedule_item = ScheduleItem(
-            program_id=program_id,
-            title=item_data.title,
-            description=item_data.description,
-            start_time=item_data.start_time
-        )
+        # Use raw SQL INSERT with parameterized queries to only insert columns that exist
+        # This avoids SQLAlchemy trying to insert columns defined in model but missing in DB
+        from sqlalchemy import text
         
-        # Set optional fields ONLY if columns exist in database
+        insert_cols = ['program_id', 'title']
+        params = {'program_id': program_id, 'title': item_data.title}
+        placeholders = [':program_id', ':title']
+        
+        if 'description' in columns:
+            insert_cols.append('description')
+            placeholders.append(':description')
+            params['description'] = item_data.description
+        
+        if 'start_time' in columns and item_data.start_time:
+            insert_cols.append('start_time')
+            placeholders.append(':start_time')
+            params['start_time'] = item_data.start_time
+        
         if 'duration_minutes' in columns and item_data.duration_minutes is not None:
-            schedule_item.duration_minutes = item_data.duration_minutes
+            insert_cols.append('duration_minutes')
+            placeholders.append(':duration_minutes')
+            params['duration_minutes'] = item_data.duration_minutes
         
         if 'order_index' in columns:
-            schedule_item.order_index = item_data.order_index if item_data.order_index is not None else 0
+            insert_cols.append('order_index')
+            placeholders.append(':order_index')
+            params['order_index'] = item_data.order_index if item_data.order_index is not None else 0
         
         if 'type' in columns:
-            schedule_item.type = item_data.type if item_data.type else "worship"
+            insert_cols.append('type')
+            placeholders.append(':type')
+            params['type'] = item_data.type if item_data.type else 'worship'
         
-        db.add(schedule_item)
+        # Build and execute parameterized SQL
+        sql = f"INSERT INTO schedule_items ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+        result = db.execute(text(sql), params)
+        item_id = result.scalar()
+        db.commit()
         
-        try:
-            db.commit()
-            db.refresh(schedule_item)
+        # Fetch the created item
+        schedule_item = db.query(ScheduleItem).filter(ScheduleItem.id == item_id).first()
+        db.refresh(schedule_item)
         except SQLAlchemyError as commit_error:
             db.rollback()
             # Capture the actual database error message
@@ -376,7 +395,7 @@ async def add_special_guest(
             return create_api_response(error="Program not found")
         
         # Check which columns exist in the database
-        from sqlalchemy import inspect
+        from sqlalchemy import inspect, text
         inspector = inspect(db.bind)
         columns = [col['name'] for col in inspector.get_columns('special_guests')]
         
@@ -391,33 +410,46 @@ async def add_special_guest(
             "existing_columns": columns
         })
         
-        # Build special guest with only required fields
-        special_guest = SpecialGuest(
-            program_id=program_id,
-            name=guest_data.name
-        )
+        # Use raw SQL INSERT with parameterized queries to only insert columns that exist
+        # This avoids SQLAlchemy trying to insert columns defined in model but missing in DB
+        insert_cols = ['program_id', 'name']
+        params = {'program_id': program_id, 'name': guest_data.name}
+        placeholders = [':program_id', ':name']
         
-        # Set optional fields ONLY if columns exist in database
         if 'role' in columns:
-            special_guest.role = guest_data.role
+            insert_cols.append('role')
+            placeholders.append(':role')
+            params['role'] = guest_data.role
         
         if 'description' in columns:
-            special_guest.description = guest_data.description
+            insert_cols.append('description')
+            placeholders.append(':description')
+            params['description'] = guest_data.description
         
         if 'bio' in columns:
-            special_guest.bio = guest_data.bio
+            insert_cols.append('bio')
+            placeholders.append(':bio')
+            params['bio'] = guest_data.bio
         
         if 'photo_url' in columns:
-            special_guest.photo_url = guest_data.photo_url
+            insert_cols.append('photo_url')
+            placeholders.append(':photo_url')
+            params['photo_url'] = guest_data.photo_url
         
         if 'display_order' in columns:
-            special_guest.display_order = guest_data.display_order if guest_data.display_order is not None else 0
+            insert_cols.append('display_order')
+            placeholders.append(':display_order')
+            params['display_order'] = guest_data.display_order if guest_data.display_order is not None else 0
         
-        db.add(special_guest)
+        # Build and execute parameterized SQL
+        sql = f"INSERT INTO special_guests ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+        result = db.execute(text(sql), params)
+        guest_id = result.scalar()
+        db.commit()
         
-        try:
-            db.commit()
-            db.refresh(special_guest)
+        # Fetch the created guest
+        special_guest = db.query(SpecialGuest).filter(SpecialGuest.id == guest_id).first()
+        db.refresh(special_guest)
         except SQLAlchemyError as commit_error:
             db.rollback()
             # Capture the actual database error message
