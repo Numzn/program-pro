@@ -119,6 +119,22 @@ const AdminProgramEditorPage: React.FC = () => {
     }))
   }
 
+  // Debug logging to diagnose manager visibility issue
+  useEffect(() => {
+    console.log('📊 AdminProgramEditorPage State Debug:', {
+      isEditing,
+      id,
+      createdProgramId,
+      isLoading,
+      hasActiveProgram: !!activeProgram,
+      activeProgramId: activeProgram?.id,
+      activeProgramTitle: activeProgram?.title,
+      scheduleItemsCount: activeProgram?.schedule_items?.length || 0,
+      guestsCount: activeProgram?.special_guests?.length || 0,
+      willShowManagers: (isEditing || createdProgramId) && activeProgram
+    })
+  }, [isEditing, id, createdProgramId, isLoading, activeProgram])
+
   if (isLoading && isEditing) {
     return (
       <div className="flex items-center justify-center min-h-64">
