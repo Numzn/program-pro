@@ -76,9 +76,20 @@ class ApiService {
         
         // Handle 401 errors with token refresh
         // BUT: Don't try to refresh on auth endpoints (login, register, refresh itself)
-        const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') || 
-                              originalRequest?.url?.includes('/auth/register') ||
-                              originalRequest?.url?.includes('/auth/refresh')
+        const requestUrl = originalRequest?.url || ''
+        const isAuthEndpoint = requestUrl.includes('/auth/login') || 
+                              requestUrl.includes('/auth/register') ||
+                              requestUrl.includes('/auth/refresh') ||
+                              requestUrl.includes('/auth/logout')
+        
+        // Debug log to verify URL matching
+        if (error.response?.status === 401) {
+          console.log('🔍 401 Error detected:', {
+            url: requestUrl,
+            isAuthEndpoint,
+            willRefresh: !isAuthEndpoint && !originalRequest._retry
+          })
+        }
         
         if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
           originalRequest._retry = true
@@ -146,29 +157,41 @@ class ApiService {
 
   async login(username: string, password: string): Promise<{ user: User; token: string }> {
     console.log('🔐 Attempting login to:', this.api.defaults.baseURL + '/auth/login')
-    const response = await this.api.post('/auth/login', {
-      username,
-      password
-    })
-    console.log('✅ Login response received:', response.status)
-    
-    // Handle v1 API response shape: { success: true, data: { user }, accessToken }
-    if (response.data?.success && response.data?.data?.user && response.data?.accessToken) {
-      return { 
-        user: response.data.data.user, 
-        token: response.data.accessToken 
+    try {
+      const response = await this.api.post('/auth/login', {
+        username,
+        password
+      })
+      console.log('✅ Login response received:', response.status)
+      
+      // Handle v1 API response shape: { success: true, data: { user }, accessToken }
+      if (response.data?.success && response.data?.data?.user && response.data?.accessToken) {
+        return { 
+          user: response.data.data.user, 
+          token: response.data.accessToken 
+        }
       }
-    }
-    
-    // Legacy shape fallback (shouldn't happen with current backend)
-    if (response.data?.success && response.data?.user && response.data?.token) {
-      return { 
-        user: response.data.user, 
-        token: response.data.token 
+      
+      // Legacy shape fallback (shouldn't happen with current backend)
+      if (response.data?.success && response.data?.user && response.data?.token) {
+        return { 
+          user: response.data.user, 
+          token: response.data.token 
+        }
       }
+      
+      throw new Error(response.data.error || 'Login failed')
+    } catch (error: any) {
+      // Extract error message from backend response
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error)
+      }
+      // Re-throw original error
+      throw error
     }
-    
-    throw new Error(response.data.error || 'Login failed')
   }
 
   async logout(): Promise<void> {
