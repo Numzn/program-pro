@@ -8,7 +8,7 @@ import ProgramDetailsForm from '../../components/ProgramDetailsForm'
 import ScheduleItemsSection from '../../components/ScheduleItemsSection'
 import SpecialGuestsSection from '../../components/SpecialGuestsSection'
 import toast from 'react-hot-toast'
-import { ScheduleItem, SpecialGuest } from '../../types'
+import { ScheduleItemInput, SpecialGuestInput } from '../../types'
 import apiService from '../../services/api'
 
 const AdminProgramEditorPage: React.FC = () => {
@@ -34,10 +34,20 @@ const AdminProgramEditorPage: React.FC = () => {
   })
 
   // Local state for schedule items (before saving)
-  const [scheduleItems, setScheduleItems] = useState<Omit<ScheduleItem, 'id' | 'program_id' | 'created_at'>[]>([])
+  const [scheduleItems, setScheduleItems] = useState<ScheduleItemInput[]>([])
 
   // Local state for special guests (before saving)
-  const [specialGuests, setSpecialGuests] = useState<Omit<SpecialGuest, 'id' | 'program_id' | 'created_at'>[]>([])
+  const [specialGuests, setSpecialGuests] = useState<SpecialGuestInput[]>([])
+
+  // Reset form state when switching between create/edit modes or different programs
+  useEffect(() => {
+    if (!isEditing) {
+      // Reset form when creating new program
+      setFormData({ title: '', date: '', theme: '', is_active: true })
+      setScheduleItems([])
+      setSpecialGuests([])
+    }
+  }, [isEditing])
 
   // Load program data when editing
   useEffect(() => {
@@ -47,28 +57,44 @@ const AdminProgramEditorPage: React.FC = () => {
         toast.error('Failed to load program details')
       })
     }
-  }, [isEditing, id, fetchProgramById])
+  }, [isEditing, id])
 
   // Populate form when program loads
   useEffect(() => {
     if (isEditing && activeProgram && activeProgram.id === parseInt(id || '0')) {
-      // Set form data
+      // Set form data with enhanced date parsing
       let dateStr = ''
       if (activeProgram.date) {
         try {
           const dateValue = activeProgram.date
+          // activeProgram.date is typed as string, but handle all cases
           if (typeof dateValue === 'string') {
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+            // Handle ISO format (with T or Z)
+            if (dateValue.includes('T') || dateValue.includes('Z')) {
+              const date = new Date(dateValue)
+              if (!isNaN(date.getTime())) {
+                dateStr = date.toISOString().split('T')[0]
+              }
+            } 
+            // Handle YYYY-MM-DD format
+            else if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
               dateStr = dateValue
-            } else {
+            }
+            // Try parsing as date string
+            else {
               const date = new Date(dateValue)
               if (!isNaN(date.getTime())) {
                 dateStr = date.toISOString().split('T')[0]
               }
             }
           }
+          // Handle Date object if somehow it appears (runtime check)
+          else if (dateValue && typeof dateValue === 'object' && 'toISOString' in dateValue) {
+            dateStr = (dateValue as Date).toISOString().split('T')[0]
+          }
         } catch (e) {
           console.warn('Error parsing date:', e)
+          dateStr = ''
         }
       }
       
@@ -134,7 +160,7 @@ const AdminProgramEditorPage: React.FC = () => {
         is_active: formData.is_active,
         schedule_items: scheduleItems.map(item => {
           // Only include fields that exist in database - remove duration_minutes
-          const cleanItem: any = {
+          const cleanItem: Partial<ScheduleItemInput> = {
             title: item.title,
             type: item.type || 'worship',
             order_index: item.order_index ?? 0
@@ -156,19 +182,21 @@ const AdminProgramEditorPage: React.FC = () => {
           is_active: programData.is_active
         })
         
-        // Fetch current program to get existing items/guests for deletion
-        // updateProgram already fetches, but we'll fetch again to be sure we have latest
-        await fetchProgramById(parseInt(id))
+        // Get current program from store - updateProgram already fetches and updates activeProgram
+        // Use getState to get the latest value synchronously after updateProgram completes
+        const currentProgram = useProgramStore.getState().activeProgram
         
-        // Get the program data from API directly to ensure we have current items
-        const currentProgram = await apiService.getProgramById(parseInt(id))
+        // Track errors for user notification
+        const errors: string[] = []
         
         // Delete existing schedule items
         if (currentProgram?.schedule_items && currentProgram.schedule_items.length > 0) {
           for (const item of currentProgram.schedule_items) {
             try {
               await apiService.deleteScheduleItem(parseInt(id), item.id)
-            } catch (error) {
+            } catch (error: any) {
+              const errorMsg = error.message || 'Unknown error'
+              errors.push(`Failed to delete schedule item "${item.title}": ${errorMsg}`)
               console.warn('Failed to delete schedule item:', error)
             }
           }
@@ -179,7 +207,9 @@ const AdminProgramEditorPage: React.FC = () => {
           for (const guest of currentProgram.special_guests) {
             try {
               await apiService.deleteSpecialGuest(parseInt(id), guest.id)
-            } catch (error) {
+            } catch (error: any) {
+              const errorMsg = error.message || 'Unknown error'
+              errors.push(`Failed to delete guest "${guest.name}": ${errorMsg}`)
               console.warn('Failed to delete special guest:', error)
             }
           }
@@ -189,7 +219,9 @@ const AdminProgramEditorPage: React.FC = () => {
         for (const item of scheduleItems) {
           try {
             await apiService.addScheduleItem(parseInt(id), item)
-          } catch (error) {
+          } catch (error: any) {
+            const errorMsg = error.message || 'Unknown error'
+            errors.push(`Failed to add schedule item "${item.title}": ${errorMsg}`)
             console.warn('Failed to add schedule item:', error)
           }
         }
@@ -198,12 +230,19 @@ const AdminProgramEditorPage: React.FC = () => {
         for (const guest of specialGuests) {
           try {
             await apiService.addSpecialGuest(parseInt(id), guest)
-          } catch (error) {
+          } catch (error: any) {
+            const errorMsg = error.message || 'Unknown error'
+            errors.push(`Failed to add guest "${guest.name}": ${errorMsg}`)
             console.warn('Failed to add special guest:', error)
           }
         }
         
-        toast.success('Program updated successfully with all details!')
+        // Show appropriate message based on errors
+        if (errors.length > 0) {
+          toast.error(`Program updated but some operations failed: ${errors.join('; ')}`)
+        } else {
+          toast.success('Program updated successfully with all details!')
+        }
         navigate('/admin/programs')
       } else {
         // Create new program with all data at once using bulk-import
@@ -220,7 +259,7 @@ const AdminProgramEditorPage: React.FC = () => {
     }
   }
 
-  if (isLoading && isEditing) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-64">
         <LoadingSpinner size="lg" />

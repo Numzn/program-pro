@@ -2,13 +2,13 @@ import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
-import { SpecialGuest } from '../types'
+import { SpecialGuestInput } from '../types'
 import { Plus, Trash2, User, ArrowUp, ArrowDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface SpecialGuestsSectionProps {
-  specialGuests: Omit<SpecialGuest, 'id' | 'program_id' | 'created_at'>[]
-  onGuestsChange: (guests: Omit<SpecialGuest, 'id' | 'program_id' | 'created_at'>[]) => void
+  specialGuests: SpecialGuestInput[]
+  onGuestsChange: (guests: SpecialGuestInput[]) => void
 }
 
 const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
@@ -89,7 +89,7 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
           <div className="space-y-3">
             {specialGuests.map((guest, index) => (
               <div
-                key={index}
+                key={`${guest.name}-${guest.display_order}-${index}`}
                 className="flex items-start gap-4 p-4 border border-border rounded-lg"
               >
                 {guest.photo_url ? (

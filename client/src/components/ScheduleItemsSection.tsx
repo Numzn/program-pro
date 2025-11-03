@@ -2,14 +2,14 @@ import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
-import { ScheduleItem } from '../types'
+import { ScheduleItemInput } from '../types'
 import { Plus, Trash2, Clock, ArrowUp, ArrowDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface ScheduleItemsSectionProps {
-  scheduleItems: Omit<ScheduleItem, 'id' | 'program_id' | 'created_at'>[]
+  scheduleItems: ScheduleItemInput[]
   programDate?: string
-  onItemsChange: (items: Omit<ScheduleItem, 'id' | 'program_id' | 'created_at'>[]) => void
+  onItemsChange: (items: ScheduleItemInput[]) => void
 }
 
 const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
@@ -32,7 +32,7 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
       return
     }
 
-    const item: any = {
+    const item: ScheduleItemInput = {
       title: newItem.title.trim(),
       description: newItem.description.trim() || undefined,
       type: newItem.type || 'worship',
@@ -95,7 +95,7 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
           <div className="space-y-2">
             {scheduleItems.map((item, index) => (
               <div
-                key={index}
+                key={`${item.title}-${item.order_index}-${index}`}
                 className="flex items-center gap-3 p-4 border border-border rounded-lg"
               >
                 <div className="flex-1">

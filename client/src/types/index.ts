@@ -69,3 +69,7 @@ export interface ApiResponse<T = any> {
   error?: string
   message?: string
 }
+
+// Input types for creating schedule items and special guests (without database-generated fields)
+export type ScheduleItemInput = Omit<ScheduleItem, 'id' | 'program_id' | 'created_at'>
+export type SpecialGuestInput = Omit<SpecialGuest, 'id' | 'program_id' | 'created_at'>
