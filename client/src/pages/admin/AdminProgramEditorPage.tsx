@@ -40,8 +40,7 @@ const AdminProgramEditorPage: React.FC = () => {
     title: '',
     description: '',
     start_time: '',
-    type: 'worship' as const,
-    duration_minutes: undefined as number | undefined
+    type: 'worship' as const
   })
   const [isAddingScheduleItem, setIsAddingScheduleItem] = useState(false)
 
@@ -102,7 +101,6 @@ const AdminProgramEditorPage: React.FC = () => {
         description: item.description,
         start_time: item.start_time || '',
         type: item.type,
-        duration_minutes: undefined,
         order_index: item.order_index
       })) || [])
 
@@ -145,17 +143,14 @@ const AdminProgramEditorPage: React.FC = () => {
       item.start_time = new Date(`${dateToUse}T${newScheduleItem.start_time}`).toISOString()
     }
 
-    if (newScheduleItem.duration_minutes) {
-      item.duration_minutes = newScheduleItem.duration_minutes
-    }
+    // DO NOT include duration_minutes - column doesn't exist in database
 
     setScheduleItems([...scheduleItems, item])
     setNewScheduleItem({
       title: '',
       description: '',
       start_time: '',
-      type: 'worship',
-      duration_minutes: undefined
+      type: 'worship'
     })
     setIsAddingScheduleItem(false)
   }
@@ -256,10 +251,18 @@ const AdminProgramEditorPage: React.FC = () => {
         date: formData.date ? new Date(formData.date + 'T00:00:00').toISOString() : null,
         theme: formData.theme?.trim() || null,
         is_active: formData.is_active,
-        schedule_items: scheduleItems.map(item => ({
-          ...item,
-          start_time: item.start_time || undefined
-        })),
+        schedule_items: scheduleItems.map(item => {
+          // Only include fields that exist in database - remove duration_minutes
+          const cleanItem: any = {
+            title: item.title,
+            type: item.type || 'worship',
+            order_index: item.order_index ?? 0
+          }
+          if (item.description) cleanItem.description = item.description
+          if (item.start_time) cleanItem.start_time = item.start_time
+          // DO NOT include duration_minutes - column doesn't exist in DB
+          return cleanItem
+        }),
         special_guests: specialGuests
       }
 

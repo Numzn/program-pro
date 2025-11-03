@@ -840,18 +840,70 @@ async def bulk_import_program(
     db.commit()
     db.refresh(program)
     
-    # Add schedule items
+    # Add schedule items - check which columns exist first (same logic as add_schedule_item)
+    from sqlalchemy import inspect, text
+    from app.database.connection import engine
+    
+    inspector = inspect(engine)
+    schedule_columns = [col['name'] for col in inspector.get_columns('schedule_items')]
+    
+    if not schedule_columns:
+        try:
+            result = db.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'schedule_items'
+            """))
+            schedule_columns = [row[0] for row in result.fetchall()]
+        except Exception as e:
+            logger.warning("Could not inspect schedule_items columns, using minimal set", exc_info=True)
+            schedule_columns = ['id', 'program_id', 'title']  # Minimal safe set
+    
     schedule_items = program_data.get("schedule_items", [])
     for item in schedule_items:
-        schedule_item = ScheduleItem(
-            program_id=program.id,
-            title=item.get("title"),
-            description=item.get("description"),
-            start_time=item.get("start_time"),
-            duration_minutes=item.get("duration_minutes"),
-            order_index=item.get("order_index")
-        )
-        db.add(schedule_item)
+        # Build INSERT with only existing columns (same approach as add_schedule_item endpoint)
+        insert_cols = ['program_id', 'title']
+        params = {'program_id': program.id, 'title': item.get("title")}
+        placeholders = [':program_id', ':title']
+        
+        if 'description' in schedule_columns and item.get("description"):
+            insert_cols.append('description')
+            placeholders.append(':description')
+            params['description'] = item.get("description")
+        
+        if 'start_time' in schedule_columns and item.get("start_time"):
+            insert_cols.append('start_time')
+            placeholders.append(':start_time')
+            params['start_time'] = item.get("start_time")
+        
+        # Only include duration_minutes if column exists
+        if 'duration_minutes' in schedule_columns and item.get("duration_minutes") is not None:
+            insert_cols.append('duration_minutes')
+            placeholders.append(':duration_minutes')
+            params['duration_minutes'] = item.get("duration_minutes")
+        
+        if 'order_index' in schedule_columns:
+            insert_cols.append('order_index')
+            placeholders.append(':order_index')
+            params['order_index'] = item.get("order_index", 0)
+        
+        if 'type' in schedule_columns:
+            insert_cols.append('type')
+            placeholders.append(':type')
+            params['type'] = item.get("type", "worship")
+        
+        # Execute parameterized SQL INSERT
+        try:
+            sql = f"INSERT INTO schedule_items ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+            result = db.execute(text(sql), params)
+            # Item is automatically committed when we commit later
+        except Exception as e:
+            logger.error("Error adding schedule item in bulk import", exc_info=True, extra={
+                "program_id": program.id,
+                "error": str(e)
+            })
+            # Continue with other items even if one fails
+            continue
     
     # Add special guests
     special_guests = program_data.get("special_guests", [])
