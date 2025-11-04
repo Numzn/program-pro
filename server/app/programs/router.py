@@ -906,19 +906,64 @@ async def bulk_import_program(
                 # Continue with other items even if one fails
                 continue
         
-        # Add special guests
+        # Add special guests - check which columns exist first (same approach as schedule items)
+        guest_columns = [col['name'] for col in inspector.get_columns('special_guests')]
+        
+        if not guest_columns:
+            try:
+                result = db.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'special_guests'
+                """))
+                guest_columns = [row[0] for row in result.fetchall()]
+            except Exception as e:
+                logger.warning("Could not inspect special_guests columns, using minimal set", exc_info=True)
+                guest_columns = ['id', 'program_id', 'name']  # Minimal safe set
+        
         special_guests = program_data.get("special_guests", [])
         for guest in special_guests:
-            special_guest = SpecialGuest(
-                program_id=program.id,
-                name=guest.get("name"),
-                role=guest.get("role"),
-                description=guest.get("description"),
-                bio=guest.get("bio"),
-                photo_url=guest.get("photo_url"),
-                display_order=guest.get("display_order", 0)
-            )
-            db.add(special_guest)
+            # Build INSERT with only existing columns
+            insert_cols = ['program_id', 'name']
+            params = {'program_id': program.id, 'name': guest.get("name")}
+            placeholders = [':program_id', ':name']
+            
+            if 'role' in guest_columns and guest.get("role"):
+                insert_cols.append('role')
+                placeholders.append(':role')
+                params['role'] = guest.get("role")
+            
+            if 'description' in guest_columns and guest.get("description"):
+                insert_cols.append('description')
+                placeholders.append(':description')
+                params['description'] = guest.get("description")
+            
+            if 'bio' in guest_columns and guest.get("bio"):
+                insert_cols.append('bio')
+                placeholders.append(':bio')
+                params['bio'] = guest.get("bio")
+            
+            if 'photo_url' in guest_columns and guest.get("photo_url"):
+                insert_cols.append('photo_url')
+                placeholders.append(':photo_url')
+                params['photo_url'] = guest.get("photo_url")
+            
+            if 'display_order' in guest_columns:
+                insert_cols.append('display_order')
+                placeholders.append(':display_order')
+                params['display_order'] = guest.get("display_order", 0)
+            
+            # Execute parameterized SQL INSERT
+            try:
+                sql = f"INSERT INTO special_guests ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+                db.execute(text(sql), params)
+            except Exception as e:
+                logger.error("Error adding special guest in bulk import", exc_info=True, extra={
+                    "program_id": program.id,
+                    "error": str(e)
+                })
+                # Continue with other guests even if one fails
+                continue
         
         db.commit()
         
@@ -1048,19 +1093,64 @@ async def bulk_update_program(
                 # Continue with other items even if one fails
                 continue
         
-        # Add new special guests
+        # Add new special guests - check which columns exist first
+        guest_columns = [col['name'] for col in inspector.get_columns('special_guests')]
+        
+        if not guest_columns:
+            try:
+                result = db.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'special_guests'
+                """))
+                guest_columns = [row[0] for row in result.fetchall()]
+            except Exception as e:
+                logger.warning("Could not inspect special_guests columns, using minimal set", exc_info=True)
+                guest_columns = ['id', 'program_id', 'name']
+        
         special_guests = program_data.get("special_guests", [])
         for guest in special_guests:
-            special_guest = SpecialGuest(
-                program_id=program.id,
-                name=guest.get("name"),
-                role=guest.get("role"),
-                description=guest.get("description"),
-                bio=guest.get("bio"),
-                photo_url=guest.get("photo_url"),
-                display_order=guest.get("display_order", 0)
-            )
-            db.add(special_guest)
+            # Build INSERT with only existing columns
+            insert_cols = ['program_id', 'name']
+            params = {'program_id': program.id, 'name': guest.get("name")}
+            placeholders = [':program_id', ':name']
+            
+            if 'role' in guest_columns and guest.get("role"):
+                insert_cols.append('role')
+                placeholders.append(':role')
+                params['role'] = guest.get("role")
+            
+            if 'description' in guest_columns and guest.get("description"):
+                insert_cols.append('description')
+                placeholders.append(':description')
+                params['description'] = guest.get("description")
+            
+            if 'bio' in guest_columns and guest.get("bio"):
+                insert_cols.append('bio')
+                placeholders.append(':bio')
+                params['bio'] = guest.get("bio")
+            
+            if 'photo_url' in guest_columns and guest.get("photo_url"):
+                insert_cols.append('photo_url')
+                placeholders.append(':photo_url')
+                params['photo_url'] = guest.get("photo_url")
+            
+            if 'display_order' in guest_columns:
+                insert_cols.append('display_order')
+                placeholders.append(':display_order')
+                params['display_order'] = guest.get("display_order", 0)
+            
+            # Execute parameterized SQL INSERT
+            try:
+                sql = f"INSERT INTO special_guests ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+                db.execute(text(sql), params)
+            except Exception as e:
+                logger.error("Error adding special guest in bulk update", exc_info=True, extra={
+                    "program_id": program.id,
+                    "error": str(e)
+                })
+                # Continue with other guests even if one fails
+                continue
         
         # Commit everything in one transaction
         db.commit()
