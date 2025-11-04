@@ -436,6 +436,18 @@ class ApiService {
     throw new Error(response.data.error || 'Failed to bulk import program')
   }
 
+  async bulkUpdateProgram(programId: number, data: any): Promise<ProgramWithDetails> {
+    const response = await this.api.put<ApiResponse<ProgramWithDetails>>(
+      `/programs/${programId}/bulk-update`,
+      data
+    )
+    
+    if (response.data.success && response.data.data) {
+      return response.data.data
+    }
+    throw new Error(response.data.error || 'Failed to bulk update program')
+  }
+
   // Template methods
   async getTemplates(): Promise<any[]> {
     const response = await this.api.get<ApiResponse<any[]>>('/templates')

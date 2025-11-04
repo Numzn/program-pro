@@ -939,3 +939,144 @@ async def bulk_import_program(
     
     return create_api_response(data=program_dict)
 
+
+@router.put("/{program_id}/bulk-update")
+async def bulk_update_program(
+    program_id: int,
+    program_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a program with schedule items and guests in one atomic operation.
+    This replaces all existing schedule items and guests with the new ones.
+    """
+    # Verify program exists and user has permission
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        return create_api_response(error="Program not found")
+    
+    # Verify user's church matches program's church
+    if program.church_id != current_user.church_id:
+        return create_api_response(error="Unauthorized")
+    
+    try:
+        # Update program details
+        if "title" in program_data:
+            program.title = program_data["title"]
+        if "date" in program_data:
+            program.date = program_data["date"]
+        if "theme" in program_data:
+            program.theme = program_data.get("theme")
+        if "is_active" in program_data:
+            program.is_active = program_data["is_active"]
+        
+        # Delete all existing schedule items and guests
+        db.query(ScheduleItem).filter(ScheduleItem.program_id == program_id).delete()
+        db.query(SpecialGuest).filter(SpecialGuest.program_id == program_id).delete()
+        
+        # Add new schedule items - check which columns exist first (same logic as bulk_import_program)
+        from sqlalchemy import inspect, text
+        from app.database.connection import engine
+        
+        inspector = inspect(engine)
+        schedule_columns = [col['name'] for col in inspector.get_columns('schedule_items')]
+        
+        if not schedule_columns:
+            try:
+                result = db.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'schedule_items'
+                """))
+                schedule_columns = [row[0] for row in result.fetchall()]
+            except Exception as e:
+                logger.warning("Could not inspect schedule_items columns, using minimal set", exc_info=True)
+                schedule_columns = ['id', 'program_id', 'title']  # Minimal safe set
+        
+        schedule_items = program_data.get("schedule_items", [])
+        for item in schedule_items:
+            # Build INSERT with only existing columns (same approach as add_schedule_item endpoint)
+            insert_cols = ['program_id', 'title']
+            params = {'program_id': program.id, 'title': item.get("title")}
+            placeholders = [':program_id', ':title']
+            
+            if 'description' in schedule_columns and item.get("description"):
+                insert_cols.append('description')
+                placeholders.append(':description')
+                params['description'] = item.get("description")
+            
+            if 'start_time' in schedule_columns and item.get("start_time"):
+                insert_cols.append('start_time')
+                placeholders.append(':start_time')
+                params['start_time'] = item.get("start_time")
+            
+            # Only include duration_minutes if column exists
+            if 'duration_minutes' in schedule_columns and item.get("duration_minutes") is not None:
+                insert_cols.append('duration_minutes')
+                placeholders.append(':duration_minutes')
+                params['duration_minutes'] = item.get("duration_minutes")
+            
+            if 'order_index' in schedule_columns:
+                insert_cols.append('order_index')
+                placeholders.append(':order_index')
+                params['order_index'] = item.get("order_index", 0)
+            
+            if 'type' in schedule_columns:
+                insert_cols.append('type')
+                placeholders.append(':type')
+                params['type'] = item.get("type", "worship")
+            
+            # Execute parameterized SQL INSERT
+            try:
+                sql = f"INSERT INTO schedule_items ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+                db.execute(text(sql), params)
+            except Exception as e:
+                logger.error("Error adding schedule item in bulk update", exc_info=True, extra={
+                    "program_id": program.id,
+                    "error": str(e)
+                })
+                # Continue with other items even if one fails
+                continue
+        
+        # Add new special guests
+        special_guests = program_data.get("special_guests", [])
+        for guest in special_guests:
+            special_guest = SpecialGuest(
+                program_id=program.id,
+                name=guest.get("name"),
+                role=guest.get("role"),
+                description=guest.get("description"),
+                bio=guest.get("bio"),
+                photo_url=guest.get("photo_url"),
+                display_order=guest.get("display_order", 0)
+            )
+            db.add(special_guest)
+        
+        # Commit everything in one transaction
+        db.commit()
+        db.refresh(program)
+        
+        # Fetch and return complete updated program
+        schedule_items_db = db.query(ScheduleItem).filter(ScheduleItem.program_id == program.id).all()
+        guests_db = db.query(SpecialGuest).filter(SpecialGuest.program_id == program.id).all()
+        
+        program_dict = {
+            "id": program.id,
+            "church_id": program.church_id,
+            "title": program.title,
+            "date": program.date,
+            "theme": program.theme,
+            "is_active": program.is_active,
+            "created_at": program.created_at,
+            "schedule_items": [ScheduleItemResponse.model_validate(si) for si in schedule_items_db],
+            "special_guests": [SpecialGuestResponse.model_validate(sg) for sg in guests_db]
+        }
+        
+        return create_api_response(data=program_dict)
+        
+    except Exception as e:
+        db.rollback()
+        logger.error("Error in bulk update", exc_info=True, extra={"program_id": program_id})
+        return create_api_response(error=str(e))
+

@@ -5,6 +5,9 @@ import { useAuthStore } from '../../store/authStore'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import ProgramDetailsForm from '../../components/ProgramDetailsForm'
+import ScheduleItemsSection from '../../components/ScheduleItemsSection'
+import SpecialGuestsSection from '../../components/SpecialGuestsSection'
+import { ScheduleItemInput, SpecialGuestInput } from '../../types'
 import toast from 'react-hot-toast'
 
 const AdminProgramEditorPage: React.FC = () => {
@@ -17,7 +20,9 @@ const AdminProgramEditorPage: React.FC = () => {
     isLoading, 
     fetchProgramById, 
     createProgram,
-    updateProgram
+    updateProgram,
+    bulkImportProgram,
+    bulkUpdateProgram
   } = useProgramStore()
   const { user } = useAuthStore()
   
@@ -29,11 +34,17 @@ const AdminProgramEditorPage: React.FC = () => {
     is_active: true
   })
 
+  // Schedule items and special guests state
+  const [scheduleItems, setScheduleItems] = useState<ScheduleItemInput[]>([])
+  const [specialGuests, setSpecialGuests] = useState<SpecialGuestInput[]>([])
+
   // Reset form state when switching between create/edit modes or different programs
   useEffect(() => {
     if (!isEditing) {
       // Reset form when creating new program
       setFormData({ title: '', date: '', theme: '', is_active: true })
+      setScheduleItems([])
+      setSpecialGuests([])
     }
   }, [isEditing])
 
@@ -92,6 +103,27 @@ const AdminProgramEditorPage: React.FC = () => {
         theme: activeProgram.theme || '',
         is_active: activeProgram.is_active ?? true
       })
+
+      // Load schedule items and special guests
+      setScheduleItems(
+        activeProgram.schedule_items?.map(item => ({
+          title: item.title,
+          description: item.description,
+          start_time: item.start_time || '',
+          type: item.type || 'worship',
+          order_index: item.order_index || 0
+        })) || []
+      )
+
+      setSpecialGuests(
+        activeProgram.special_guests?.map(guest => ({
+          name: guest.name,
+          role: guest.role,
+          bio: guest.bio,
+          photo_url: guest.photo_url,
+          display_order: guest.display_order || 0
+        })) || []
+      )
     }
   }, [isEditing, activeProgram, id])
 
@@ -128,15 +160,31 @@ const AdminProgramEditorPage: React.FC = () => {
         title: formData.title.trim(),
         date: formData.date ? new Date(formData.date + 'T00:00:00').toISOString() : null,
         theme: formData.theme?.trim() || null,
-        is_active: formData.is_active
+        is_active: formData.is_active,
+        schedule_items: scheduleItems.map(item => ({
+          title: item.title,
+          description: item.description,
+          start_time: item.start_time,
+          type: item.type || 'worship',
+          order_index: item.order_index ?? 0
+        })),
+        special_guests: specialGuests.map(guest => ({
+          name: guest.name,
+          role: guest.role,
+          bio: guest.bio,
+          photo_url: guest.photo_url,
+          display_order: guest.display_order ?? 0
+        }))
       }
 
       if (isEditing && id) {
-        await updateProgram(parseInt(id), programData)
+        // Use bulk update - single API call
+        await bulkUpdateProgram(parseInt(id), programData)
         toast.success('Program updated successfully!')
         navigate('/admin/programs')
       } else {
-        const program = await createProgram(programData)
+        // Use bulk import for creation
+        await bulkImportProgram(programData)
         toast.success('Program created successfully!')
         navigate('/admin/programs')
       }
@@ -181,6 +229,19 @@ const AdminProgramEditorPage: React.FC = () => {
         <ProgramDetailsForm
           formData={formData}
           onChange={handleChange}
+        />
+
+        {/* Schedule Items Section */}
+        <ScheduleItemsSection
+          scheduleItems={scheduleItems}
+          programDate={formData.date}
+          onItemsChange={setScheduleItems}
+        />
+
+        {/* Special Guests Section */}
+        <SpecialGuestsSection
+          specialGuests={specialGuests}
+          onGuestsChange={setSpecialGuests}
         />
 
         {/* Submit Button */}

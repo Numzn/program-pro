@@ -17,6 +17,7 @@ interface ProgramStore {
   
   // Bulk import
   bulkImportProgram: (data: any) => Promise<ProgramWithDetails>
+  bulkUpdateProgram: (id: number, data: any) => Promise<ProgramWithDetails>
   
   // Schedule items management
   addScheduleItem: (programId: number, data: any) => Promise<void>
@@ -129,6 +130,23 @@ export const useProgramStore = create<ProgramStore>((set) => ({
         programs: [program, ...state.programs],
         activeProgram: program,
         isLoading: false
+      }))
+      return program
+    } catch (error: any) {
+      set({ isLoading: false, error: error.message })
+      throw error
+    }
+  },
+
+  bulkUpdateProgram: async (id: number, data: any) => {
+    set({ isLoading: true, error: null })
+    try {
+      const program = await apiService.bulkUpdateProgram(id, data)
+      set(state => ({
+        programs: state.programs.map(p => p.id === id ? program : p),
+        activeProgram: program,
+        isLoading: false,
+        error: null
       }))
       return program
     } catch (error: any) {
