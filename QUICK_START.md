@@ -14,7 +14,7 @@ npm install
 
 # Install server dependencies
 cd ../server
-npm install
+pip install -r requirements.txt
 
 cd ..
 ```
@@ -28,18 +28,18 @@ Copy-Item env.example .env
 
 The default settings in `env.example` will work for local development!
 
-### 3. Seed the Database
+### 3. Set Up Database
 
 ```powershell
+# Database migrations run automatically on server startup
+# Or manually:
 cd server
-npm run db:seed
+alembic upgrade head
 ```
 
-This creates:
-- Default church: "Grace Community Church"
+**Note:** On first server start, the system automatically creates:
+- Default church: "Numz"
 - Admin user: username=`admin`, password=`password`
-- Editor user: username=`editor`, password=`password`
-- Sample program for today
 
 ### 4. Start the Application
 
@@ -49,8 +49,9 @@ npm run dev
 ```
 
 This will start:
-- **Backend API** on http://localhost:5000
-- **Frontend PWA** on http://localhost:3000
+- **Backend API** on http://localhost:8000
+- **Frontend PWA** on http://localhost:3000 (Vite dev server)
+- **Backend Docs** on http://localhost:8000/docs (Swagger UI)
 
 ### 5. Open in Browser
 

@@ -78,7 +78,7 @@ Go to your Supabase Dashboard → SQL Editor and run:
 ```sql
 -- Insert test church (if not exists)
 INSERT INTO churches (name, short_name, slug, description) 
-VALUES ('Grace Community Church', 'Grace Church', 'grace-community', 'A welcoming community of faith')
+VALUES ('Numz', 'Numz', 'numz', 'A welcoming community of faith')
 ON CONFLICT (slug) DO NOTHING;
 
 -- Insert admin user (password: admin123)

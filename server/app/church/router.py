@@ -25,7 +25,7 @@ async def get_church_info(church_id: Optional[int] = None, db: Session = Depends
         # Return a default church if none exists
         default_church = {
             "id": 0,
-            "name": "Grace Community Church",
+            "name": "Numz",
             "address": None,
             "created_at": None
         }

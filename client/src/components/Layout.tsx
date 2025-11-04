@@ -40,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {/* Brand Text */}
               <div className="min-w-0 flex-1">
                 <h1 className="text-base sm:text-xl lg:text-2xl font-black text-white tracking-tight truncate">
-                  {church?.name || 'Grace Community Church'}
+                  {church?.name || 'Numz'}
                 </h1>
                 <p className="hidden sm:block text-xs lg:text-sm text-white/70 font-medium truncate">
                   {isAdminRoute ? 'Admin Dashboard' : 'Program Management System'}

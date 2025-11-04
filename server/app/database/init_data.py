@@ -30,7 +30,7 @@ def ensure_admin_user():
         church = db.query(Church).first()
         if not church:
             logger.info("No church found, creating default church...")
-            church = Church(name="Grace Community Church")
+            church = Church(name="Numz")
             db.add(church)
             db.commit()
             db.refresh(church)

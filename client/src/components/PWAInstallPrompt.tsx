@@ -85,7 +85,7 @@ const PWAInstallPrompt: React.FC = () => {
             
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-gray-900 text-sm mb-1">
-                Install Grace Community Church
+                Install Numz
               </h3>
               <p className="text-gray-600 text-xs mb-3">
                 Install this app on your device for quick access and offline use.

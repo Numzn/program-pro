@@ -26,19 +26,22 @@ A modern, full-stack application for managing church programs, events, and sched
 - **VitePWA** for PWA functionality
 
 ### Backend
-- **Node.js** with Express
-- **TypeScript** for type safety
-- **SQLite/PostgreSQL** database support
-- **JWT** authentication
-- **Zod** for validation
-- **Helmet** for security
+- **Python 3.11+** with FastAPI
+- **SQLAlchemy** ORM for database
+- **PostgreSQL** (production) / SQLite (development)
+- **JWT** authentication with refresh tokens
+- **Pydantic** for validation
+- **Alembic** for database migrations
+- **Bcrypt** for password hashing
 
 ## Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- Git
+- **Node.js 18+** (for frontend)
+- **Python 3.11+** (for backend)
+- **npm** or yarn
+- **pip** (Python package manager)
+- **Git**
 
 ### Installation
 
@@ -49,8 +52,26 @@ A modern, full-stack application for managing church programs, events, and sched
    ```
 
 2. **Install dependencies**
+   
+   **Frontend:**
    ```bash
-   npm run install:all
+   cd client
+   npm install
+   cd ..
+   ```
+   
+   **Backend:**
+   ```bash
+   cd server
+   pip install -r requirements.txt
+   cd ..
+   ```
+   
+   Or use the convenience script:
+   ```bash
+   npm install
+   cd client && npm install && cd ..
+   cd server && pip install -r requirements.txt && cd ..
    ```
 
 3. **Set up environment variables**
@@ -65,8 +86,9 @@ A modern, full-stack application for managing church programs, events, and sched
    ```
 
 5. **Access the application**
-   - Frontend: http://localhost:3000
+   - Frontend: http://localhost:5173 (Vite dev server)
    - Backend API: http://localhost:8000
+   - Backend Docs: http://localhost:8000/docs (Swagger UI)
 
 ## Deployment
 
@@ -235,18 +257,22 @@ The application includes a powerful template system:
 church-program-pro/
 ├── client/                 # React frontend
 │   ├── src/
-│   │   ├── components/     # Reusable components
-│   │   ├── pages/         # Page components
-│   │   ├── store/         # Zustand stores
-│   │   ├── services/      # API services
-│   │   └── utils/         # Utility functions
+│   │   ├── components/     # Reusable UI components
+│   │   ├── pages/         # Page components (admin & public)
+│   │   ├── store/         # Zustand state management
+│   │   ├── services/      # API service layer
+│   │   └── types/         # TypeScript type definitions
 │   └── public/            # Static assets
-├── server/                # Node.js backend
-│   ├── src/
-│   │   ├── api/          # API routes
-│   │   ├── services/     # Business logic
-│   │   ├── middleware/    # Express middleware
-│   │   └── database/     # Database configuration
+├── server/                # Python FastAPI backend
+│   ├── app/
+│   │   ├── auth/          # Authentication module
+│   │   ├── programs/      # Program management
+│   │   ├── church/        # Church settings
+│   │   ├── templates/     # Template management
+│   │   ├── models/        # Database models & Pydantic schemas
+│   │   ├── database/      # Database connection & migrations
+│   │   └── middleware/    # CORS, error handling
+│   └── alembic/           # Database migrations
 └── docker/               # Docker configuration
 ```
 
@@ -255,17 +281,16 @@ church-program-pro/
 ```bash
 # Development
 npm run dev              # Start both client and server
-npm run dev:client       # Start only client
-npm run dev:server       # Start only server
+npm run dev:client       # Start only frontend (Vite on :5173)
+npm run dev:server       # Start only backend (FastAPI on :8000)
 
 # Building
-npm run build            # Build both client and server
-npm run build:client     # Build only client
-npm run build:server     # Build only server
+npm run build            # Build frontend for production
+npm run build:client     # Build only frontend
 
 # Database
-npm run migrate          # Run database migration
-npm run db:seed          # Seed database with sample data
+# Database migrations run automatically on server startup
+# Or manually: cd server && alembic upgrade head
 
 # Docker
 npm run docker:dev       # Start with Docker Compose

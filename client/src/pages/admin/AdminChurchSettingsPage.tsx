@@ -129,7 +129,7 @@ const AdminChurchSettingsPage: React.FC = () => {
             <Input
               value={formData.short_name}
               onChange={(e) => handleInputChange('short_name', e.target.value)}
-              placeholder="e.g., Grace Church"
+              placeholder="e.g., Numz"
               className="shadow-brand"
             />
             <p className="text-xs text-muted-foreground">

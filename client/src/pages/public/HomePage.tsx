@@ -64,7 +64,7 @@ const HomePage: React.FC = () => {
           <div className="max-w-5xl mx-auto">
             {/* Church Name */}
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tight">
-              {church?.name || 'Grace Community Church'}
+              {church?.name || 'Numz'}
             </h1>
             
             {/* Desktop Only Content */}

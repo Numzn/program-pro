@@ -43,9 +43,9 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Grace Community Church',
-        short_name: 'Grace Church',
-        description: 'Grace Community Church program management and display',
+        name: 'Numz',
+        short_name: 'Numz',
+        description: 'Numz program management and display',
         theme_color: '#4F46E5',
         background_color: '#ffffff',
         display: 'standalone',
