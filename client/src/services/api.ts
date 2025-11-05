@@ -41,14 +41,33 @@ class ApiService {
 
     this.api.interceptors.request.use(
       (config) => {
+        // Log every request for debugging
+        console.log('📡 API Request Interceptor:', {
+          method: config.method?.toUpperCase(),
+          url: config.url,
+          baseURL: config.baseURL,
+          fullURL: `${config.baseURL}${config.url}`,
+          hasData: !!config.data
+        })
+        
         // Read token from AuthStore (single source of truth)
         const token = useAuthStore.getState().getToken()
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
+        
+        // Ensure baseURL is set correctly
+        if (!config.baseURL) {
+          console.warn('⚠️ No baseURL set, using default:', this.api.defaults.baseURL)
+          config.baseURL = this.api.defaults.baseURL
+        }
+        
         return config
       },
-      (error) => Promise.reject(error)
+      (error) => {
+        console.error('❌ Request interceptor error:', error)
+        return Promise.reject(error)
+      }
     )
 
     this.api.interceptors.response.use(
@@ -428,24 +447,73 @@ class ApiService {
 
   // Bulk import methods
   async bulkImportProgram(data: any): Promise<ProgramWithDetails> {
-    const response = await this.api.post<ApiResponse<ProgramWithDetails>>('/programs/bulk-import', data)
+    console.log('📦 bulkImportProgram called with data:', {
+      title: data.title,
+      hasScheduleItems: data.schedule_items?.length || 0,
+      hasGuests: data.special_guests?.length || 0
+    })
+    console.log('🌐 API baseURL:', this.api.defaults.baseURL)
+    console.log('🔗 Full endpoint:', `${this.api.defaults.baseURL}/programs/bulk-import`)
     
-    if (response.data.success && response.data.data) {
-      return response.data.data
+    try {
+      const response = await this.api.post<ApiResponse<ProgramWithDetails>>('/programs/bulk-import', data)
+      
+      console.log('✅ bulkImportProgram response:', response.data)
+      
+      if (response.data.success && response.data.data) {
+        return response.data.data
+      }
+      throw new Error(response.data.error || 'Failed to bulk import program')
+    } catch (error: any) {
+      console.error('❌ bulkImportProgram error:', {
+        message: error.message,
+        config: error.config ? {
+          url: error.config.url,
+          baseURL: error.config.baseURL,
+          method: error.config.method,
+          fullURL: error.config.baseURL + error.config.url
+        } : 'No config',
+        response: error.response?.data
+      })
+      throw error
     }
-    throw new Error(response.data.error || 'Failed to bulk import program')
   }
 
   async bulkUpdateProgram(programId: number, data: any): Promise<ProgramWithDetails> {
-    const response = await this.api.put<ApiResponse<ProgramWithDetails>>(
-      `/programs/${programId}/bulk-update`,
-      data
-    )
+    console.log('📦 bulkUpdateProgram called with:', {
+      programId,
+      title: data.title,
+      hasScheduleItems: data.schedule_items?.length || 0,
+      hasGuests: data.special_guests?.length || 0
+    })
+    console.log('🌐 API baseURL:', this.api.defaults.baseURL)
+    console.log('🔗 Full endpoint:', `${this.api.defaults.baseURL}/programs/${programId}/bulk-update`)
     
-    if (response.data.success && response.data.data) {
-      return response.data.data
+    try {
+      const response = await this.api.put<ApiResponse<ProgramWithDetails>>(
+        `/programs/${programId}/bulk-update`,
+        data
+      )
+      
+      console.log('✅ bulkUpdateProgram response:', response.data)
+      
+      if (response.data.success && response.data.data) {
+        return response.data.data
+      }
+      throw new Error(response.data.error || 'Failed to bulk update program')
+    } catch (error: any) {
+      console.error('❌ bulkUpdateProgram error:', {
+        message: error.message,
+        config: error.config ? {
+          url: error.config.url,
+          baseURL: error.config.baseURL,
+          method: error.config.method,
+          fullURL: error.config.baseURL + error.config.url
+        } : 'No config',
+        response: error.response?.data
+      })
+      throw error
     }
-    throw new Error(response.data.error || 'Failed to bulk update program')
   }
 
   // Template methods
