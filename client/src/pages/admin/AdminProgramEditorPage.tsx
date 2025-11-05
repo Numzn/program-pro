@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useProgramStore } from '../../store/programStore'
 import { useAuthStore } from '../../store/authStore'
@@ -7,8 +7,14 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import ProgramDetailsForm from '../../components/ProgramDetailsForm'
 import ScheduleItemsSection from '../../components/ScheduleItemsSection'
 import SpecialGuestsSection from '../../components/SpecialGuestsSection'
+import ProgramModeSelector, { ProgramMode } from '../../components/ProgramModeSelector'
+import StepByStepForm from '../../components/StepByStepForm'
+import BulkEntryForm from '../../components/BulkEntryForm'
 import { ScheduleItemInput, SpecialGuestInput } from '../../types'
+import { saveProgramDraft, loadProgramDraft, clearProgramDraft } from '../../utils/localStorage'
+import { useDebouncedCallback } from '../../hooks/useDebounce'
 import toast from 'react-hot-toast'
+import { Save, Trash2, Download, Clock } from 'lucide-react'
 
 const AdminProgramEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -26,6 +32,9 @@ const AdminProgramEditorPage: React.FC = () => {
   } = useProgramStore()
   const { user } = useAuthStore()
   
+  // Mode selector state
+  const [mode, setMode] = useState<ProgramMode>('singlePage')
+  
   // Program form data
   const [formData, setFormData] = useState({
     title: '',
@@ -37,6 +46,113 @@ const AdminProgramEditorPage: React.FC = () => {
   // Schedule items and special guests state
   const [scheduleItems, setScheduleItems] = useState<ScheduleItemInput[]>([])
   const [specialGuests, setSpecialGuests] = useState<SpecialGuestInput[]>([])
+  
+  // Draft management state
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const draftLoadedRef = useRef(false)
+
+  // Get draft key for current program
+  const draftKey = isEditing && id ? id : null
+
+  // Load draft on mount
+  useEffect(() => {
+    if (draftLoadedRef.current) return
+    
+    const draft = loadProgramDraft(draftKey)
+    if (draft) {
+      const shouldLoad = window.confirm(
+        `A draft was saved at ${new Date(draft.savedAt).toLocaleString()}. Would you like to load it?`
+      )
+      
+      if (shouldLoad) {
+        setFormData(draft.formData)
+        setScheduleItems(draft.scheduleItems)
+        setSpecialGuests(draft.specialGuests)
+        setDraftSavedAt(new Date(draft.savedAt))
+        toast.success('Draft loaded successfully')
+      }
+    }
+    draftLoadedRef.current = true
+  }, [draftKey])
+
+  // Auto-save draft (debounced)
+  const saveDraft = useDebouncedCallback(() => {
+    // Skip save if form is empty
+    if (!formData.title.trim() && !formData.date) {
+      return
+    }
+    
+    saveProgramDraft(draftKey, {
+      formData,
+      scheduleItems,
+      specialGuests
+    })
+    
+    setDraftSavedAt(new Date())
+    setHasUnsavedChanges(false)
+    toast.success('Draft saved locally', { duration: 2000 })
+  }, 2000)
+
+  // Save draft when data changes
+  useEffect(() => {
+    if (draftLoadedRef.current) {
+      setHasUnsavedChanges(true)
+      saveDraft()
+    }
+  }, [formData, scheduleItems, specialGuests, saveDraft])
+
+  // Manual save draft
+  const handleSaveDraft = () => {
+    if (!formData.title.trim() && !formData.date) {
+      toast.error('Please fill in at least title or date before saving draft')
+      return
+    }
+    
+    saveProgramDraft(draftKey, {
+      formData,
+      scheduleItems,
+      specialGuests
+    })
+    
+    setDraftSavedAt(new Date())
+    setHasUnsavedChanges(false)
+    toast.success('Draft saved successfully!')
+  }
+
+  // Clear draft
+  const handleClearDraft = () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to clear the draft? This action cannot be undone.'
+    )
+    
+    if (confirmed) {
+      clearProgramDraft(draftKey)
+      setDraftSavedAt(null)
+      setHasUnsavedChanges(false)
+      toast.success('Draft cleared')
+    }
+  }
+
+  // Load draft manually
+  const handleLoadDraft = () => {
+    const draft = loadProgramDraft(draftKey)
+    if (draft) {
+      const confirmed = window.confirm(
+        'This will replace your current form data. Continue?'
+      )
+      
+      if (confirmed) {
+        setFormData(draft.formData)
+        setScheduleItems(draft.scheduleItems)
+        setSpecialGuests(draft.specialGuests)
+        setDraftSavedAt(new Date(draft.savedAt))
+        toast.success('Draft loaded successfully')
+      }
+    } else {
+      toast.error('No draft found')
+    }
+  }
 
   // Reset form state when switching between create/edit modes or different programs
   useEffect(() => {
@@ -45,6 +161,7 @@ const AdminProgramEditorPage: React.FC = () => {
       setFormData({ title: '', date: '', theme: '', is_active: true })
       setScheduleItems([])
       setSpecialGuests([])
+      draftLoadedRef.current = false
     }
   }, [isEditing])
 
@@ -135,6 +252,22 @@ const AdminProgramEditorPage: React.FC = () => {
     }))
   }
 
+  // Handle bulk entry data
+  const handleBulkDataParsed = (data: {
+    formData: {
+      title: string
+      date: string
+      theme: string
+      is_active: boolean
+    }
+    scheduleItems: ScheduleItemInput[]
+    specialGuests: SpecialGuestInput[]
+  }) => {
+    setFormData(data.formData)
+    setScheduleItems(data.scheduleItems)
+    setSpecialGuests(data.specialGuests)
+  }
+
   // Submit form - everything at once
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -177,14 +310,23 @@ const AdminProgramEditorPage: React.FC = () => {
         }))
       }
 
+      // Save to localStorage before publishing
+      saveProgramDraft(draftKey, {
+        formData,
+        scheduleItems,
+        specialGuests
+      })
+
       if (isEditing && id) {
         // Use bulk update - single API call
         await bulkUpdateProgram(parseInt(id), programData)
+        clearProgramDraft(draftKey)
         toast.success('Program updated successfully!')
         navigate('/admin/programs')
       } else {
         // Use bulk import for creation
         await bulkImportProgram(programData)
+        clearProgramDraft(draftKey)
         toast.success('Program created successfully!')
         navigate('/admin/programs')
       }
@@ -205,6 +347,8 @@ const AdminProgramEditorPage: React.FC = () => {
     )
   }
 
+  const hasDraft = loadProgramDraft(draftKey) !== null
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-8">
       <div className="flex items-center justify-between">
@@ -216,36 +360,113 @@ const AdminProgramEditorPage: React.FC = () => {
             {isEditing ? 'Update program details' : 'Fill in all program details below'}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate('/admin/programs')}
-        >
-          Cancel
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasDraft && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleLoadDraft}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Load Draft
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin/programs')}
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
 
+      {/* Draft Status Indicator */}
+      {(draftSavedAt || hasUnsavedChanges) && (
+        <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-blue-600" />
+            {draftSavedAt ? (
+              <span className="text-blue-800">
+                Draft saved at {draftSavedAt.toLocaleString()}
+              </span>
+            ) : (
+              <span className="text-blue-800">Unsaved changes</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSaveDraft}
+              className="flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Save Draft
+            </Button>
+            {draftSavedAt && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClearDraft}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+                Clear Draft
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mode Selector */}
+      <ProgramModeSelector activeMode={mode} onModeChange={setMode} />
+
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Program Details Section */}
-        <ProgramDetailsForm
-          formData={formData}
-          onChange={handleChange}
-        />
+        {/* Conditional Rendering Based on Mode */}
+        {mode === 'stepByStep' && (
+          <StepByStepForm
+            formData={formData}
+            scheduleItems={scheduleItems}
+            specialGuests={specialGuests}
+            onFormDataChange={handleChange}
+            onScheduleItemsChange={setScheduleItems}
+            onSpecialGuestsChange={setSpecialGuests}
+          />
+        )}
 
-        {/* Schedule Items Section */}
-        <ScheduleItemsSection
-          scheduleItems={scheduleItems}
-          programDate={formData.date}
-          onItemsChange={setScheduleItems}
-        />
+        {mode === 'singlePage' && (
+          <>
+            {/* Program Details Section */}
+            <ProgramDetailsForm
+              formData={formData}
+              onChange={handleChange}
+            />
 
-        {/* Special Guests Section */}
-        <SpecialGuestsSection
-          specialGuests={specialGuests}
-          onGuestsChange={setSpecialGuests}
-        />
+            {/* Schedule Items Section */}
+            <ScheduleItemsSection
+              scheduleItems={scheduleItems}
+              programDate={formData.date}
+              onItemsChange={setScheduleItems}
+            />
+
+            {/* Special Guests Section */}
+            <SpecialGuestsSection
+              specialGuests={specialGuests}
+              onGuestsChange={setSpecialGuests}
+            />
+          </>
+        )}
+
+        {mode === 'bulkEntry' && (
+          <BulkEntryForm onDataParsed={handleBulkDataParsed} />
+        )}
 
         {/* Submit Button */}
-        <div className="flex justify-end gap-4 pt-4">
+        <div className="flex justify-end gap-4 pt-4 border-t">
           <Button
             type="button"
             variant="outline"
@@ -253,14 +474,23 @@ const AdminProgramEditorPage: React.FC = () => {
           >
             Cancel
           </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleSaveDraft}
+            className="flex items-center gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Save Draft
+          </Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (
               <>
                 <LoadingSpinner size="sm" className="mr-2" />
-                Saving...
+                Publishing...
               </>
             ) : (
-              isEditing ? 'Update Program' : 'Create Program'
+              isEditing ? 'Publish Update' : 'Publish Program'
             )}
           </Button>
         </div>
