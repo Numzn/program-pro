@@ -1,6 +1,6 @@
 import React from 'react'
 
-export type ProgramMode = 'stepByStep' | 'singlePage' | 'bulkEntry'
+export type ProgramMode = 'stepByStep' | 'bulkEntry'
 
 interface ProgramModeSelectorProps {
   activeMode: ProgramMode
@@ -13,7 +13,6 @@ const ProgramModeSelector: React.FC<ProgramModeSelectorProps> = ({
 }) => {
   const modes: { key: ProgramMode; label: string }[] = [
     { key: 'stepByStep', label: 'Step-by-Step Form' },
-    { key: 'singlePage', label: 'Single Page' },
     { key: 'bulkEntry', label: 'Bulk Entry' }
   ]
 

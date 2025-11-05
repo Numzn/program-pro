@@ -4,9 +4,6 @@ import { useProgramStore } from '../../store/programStore'
 import { useAuthStore } from '../../store/authStore'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
-import ProgramDetailsForm from '../../components/ProgramDetailsForm'
-import ScheduleItemsSection from '../../components/ScheduleItemsSection'
-import SpecialGuestsSection from '../../components/SpecialGuestsSection'
 import ProgramModeSelector, { ProgramMode } from '../../components/ProgramModeSelector'
 import StepByStepForm from '../../components/StepByStepForm'
 import BulkEntryForm from '../../components/BulkEntryForm'
@@ -33,7 +30,7 @@ const AdminProgramEditorPage: React.FC = () => {
   const { user } = useAuthStore()
   
   // Mode selector state
-  const [mode, setMode] = useState<ProgramMode>('singlePage')
+  const [mode, setMode] = useState<ProgramMode>('stepByStep')
   
   // Program form data
   const [formData, setFormData] = useState({
@@ -436,29 +433,6 @@ const AdminProgramEditorPage: React.FC = () => {
             onScheduleItemsChange={setScheduleItems}
             onSpecialGuestsChange={setSpecialGuests}
           />
-        )}
-
-        {mode === 'singlePage' && (
-          <>
-            {/* Program Details Section */}
-            <ProgramDetailsForm
-              formData={formData}
-              onChange={handleChange}
-            />
-
-            {/* Schedule Items Section */}
-            <ScheduleItemsSection
-              scheduleItems={scheduleItems}
-              programDate={formData.date}
-              onItemsChange={setScheduleItems}
-            />
-
-            {/* Special Guests Section */}
-            <SpecialGuestsSection
-              specialGuests={specialGuests}
-              onGuestsChange={setSpecialGuests}
-            />
-          </>
         )}
 
         {mode === 'bulkEntry' && (
