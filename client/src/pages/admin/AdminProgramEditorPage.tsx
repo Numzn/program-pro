@@ -73,7 +73,7 @@ const AdminProgramEditorPage: React.FC = () => {
     draftLoadedRef.current = true
   }, [draftKey])
 
-  // Auto-save draft (debounced)
+  // Auto-save draft (debounced) - silent save, no toast notification
   const saveDraft = useDebouncedCallback(() => {
     // Skip save if form is empty
     if (!formData.title.trim() && !formData.date) {
@@ -88,7 +88,7 @@ const AdminProgramEditorPage: React.FC = () => {
     
     setDraftSavedAt(new Date())
     setHasUnsavedChanges(false)
-    toast.success('Draft saved locally', { duration: 2000 })
+    // No toast notification for auto-save - only show on manual save
   }, 2000)
 
   // Save draft when data changes
@@ -295,26 +295,82 @@ const AdminProgramEditorPage: React.FC = () => {
     }
 
     try {
+      // Clean and prepare schedule items data
+      const cleanedScheduleItems = scheduleItems.map((item, index) => {
+        const cleaned: any = {
+          title: item.title?.trim() || '',
+          type: item.type || 'worship',
+          order_index: item.order_index ?? index
+        }
+        
+        // Only include description if it has a value
+        if (item.description?.trim()) {
+          cleaned.description = item.description.trim()
+        }
+        
+        // Only include start_time if it has a valid value
+        if (item.start_time?.trim()) {
+          // If it's just a time (HH:MM), we need to combine with date
+          if (item.start_time.match(/^\d{2}:\d{2}$/)) {
+            // Combine with program date
+            if (formData.date) {
+              cleaned.start_time = `${formData.date}T${item.start_time}:00`
+            }
+          } else {
+            cleaned.start_time = item.start_time
+          }
+        }
+        
+        // Only include duration_minutes if it exists
+        if (item.duration_minutes !== undefined && item.duration_minutes !== null) {
+          cleaned.duration_minutes = item.duration_minutes
+        }
+        
+        return cleaned
+      })
+      
+      // Clean and prepare special guests data
+      const cleanedSpecialGuests = specialGuests.map((guest, index) => {
+        const cleaned: any = {
+          name: guest.name?.trim() || '',
+          display_order: guest.display_order ?? index
+        }
+        
+        // Only include optional fields if they have values
+        if (guest.role?.trim()) {
+          cleaned.role = guest.role.trim()
+        }
+        if (guest.bio?.trim()) {
+          cleaned.bio = guest.bio.trim()
+        }
+        if (guest.photo_url?.trim()) {
+          cleaned.photo_url = guest.photo_url.trim()
+        }
+        if (guest.description?.trim()) {
+          cleaned.description = guest.description.trim()
+        }
+        
+        return cleaned
+      })
+      
       const programData = {
         title: formData.title.trim(),
         date: formData.date ? new Date(formData.date + 'T00:00:00').toISOString() : null,
         theme: formData.theme?.trim() || null,
         is_active: formData.is_active,
-        schedule_items: scheduleItems.map(item => ({
-          title: item.title,
-          description: item.description,
-          start_time: item.start_time,
-          type: item.type || 'worship',
-          order_index: item.order_index ?? 0
-        })),
-        special_guests: specialGuests.map(guest => ({
-          name: guest.name,
-          role: guest.role,
-          bio: guest.bio,
-          photo_url: guest.photo_url,
-          display_order: guest.display_order ?? 0
-        }))
+        schedule_items: cleanedScheduleItems,
+        special_guests: cleanedSpecialGuests
       }
+      
+      console.log('📤 Prepared program data for submission:', {
+        isEditing,
+        programId: id,
+        title: programData.title,
+        scheduleItemsCount: programData.schedule_items.length,
+        specialGuestsCount: programData.special_guests.length,
+        sampleScheduleItem: programData.schedule_items[0],
+        sampleGuest: programData.special_guests[0]
+      })
 
       // Save to localStorage before publishing
       saveProgramDraft(draftKey, {
