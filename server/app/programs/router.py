@@ -1063,7 +1063,16 @@ async def bulk_update_program(
                 logger.warning("Could not inspect schedule_items columns, using minimal set", exc_info=True)
                 schedule_columns = ['id', 'program_id', 'title']  # Minimal safe set
         
+        logger.info("Schedule items columns detected", extra={
+            "program_id": program_id,
+            "existing_columns": schedule_columns
+        })
+        
         schedule_items = program_data.get("schedule_items", [])
+        logger.info("Processing schedule items", extra={
+            "program_id": program_id,
+            "item_count": len(schedule_items)
+        })
         for item in schedule_items:
             # Build INSERT with only existing columns (same approach as add_schedule_item endpoint)
             insert_cols = ['program_id', 'title']
