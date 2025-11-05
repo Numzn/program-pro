@@ -173,7 +173,22 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
         )}
 
         {isAdding ? (
-          <div className="space-y-4 p-4 border border-border rounded-lg">
+          <div 
+            className="space-y-4 p-4 border border-border rounded-lg"
+            onKeyDown={(e) => {
+              // Prevent form submission on Enter key
+              if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+            onSubmit={(e) => {
+              // Prevent any form submission from this section
+              e.preventDefault()
+              e.stopPropagation()
+              return false
+            }}
+          >
             <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
               ℹ️ This item will be saved locally. It will be saved to the database when you click "Publish Program".
             </div>
@@ -182,6 +197,13 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
                 label="Title"
                 value={newItem.title}
                 onChange={(e) => setNewItem(prev => ({ ...prev, title: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleAdd(e as any)
+                  }
+                }}
                 placeholder="e.g., Conference Session"
                 required
               />
@@ -190,12 +212,26 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
                 type="time"
                 value={newItem.start_time}
                 onChange={(e) => setNewItem(prev => ({ ...prev, start_time: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleAdd(e as any)
+                  }
+                }}
               />
             </div>
             <Input
               label="Description"
               value={newItem.description}
               onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleAdd(e as any)
+                }
+              }}
               placeholder="e.g., Speaker: Rev. Isaac Mphande"
             />
             <div>
@@ -203,6 +239,13 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
               <select
                 value={newItem.type}
                 onChange={(e) => setNewItem(prev => ({ ...prev, type: e.target.value as any }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleAdd(e as any)
+                  }
+                }}
                 className="w-full p-2 border rounded-md"
                 aria-label="Schedule item type"
               >
@@ -220,6 +263,7 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
                   e.preventDefault()
                   e.stopPropagation()
                   handleAdd(e)
+                  return false
                 }}
               >
                 Add Item
@@ -228,7 +272,11 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setIsAdding(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsAdding(false)
+                }}
               >
                 Cancel
               </Button>

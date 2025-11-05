@@ -148,7 +148,22 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
         )}
 
         {isAdding ? (
-          <div className="space-y-4 p-4 border border-border rounded-lg">
+          <div 
+            className="space-y-4 p-4 border border-border rounded-lg"
+            onKeyDown={(e) => {
+              // Prevent form submission on Enter key
+              if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+            onSubmit={(e) => {
+              // Prevent any form submission from this section
+              e.preventDefault()
+              e.stopPropagation()
+              return false
+            }}
+          >
             <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
               ℹ️ This guest will be saved locally. It will be saved to the database when you click "Publish Program".
             </div>
@@ -157,6 +172,13 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
                 label="Name"
                 value={newGuest.name}
                 onChange={(e) => setNewGuest(prev => ({ ...prev, name: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleAdd(e as any)
+                  }
+                }}
                 placeholder="e.g., Bishop Maron Musonda"
                 required
               />
@@ -164,6 +186,13 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
                 label="Role"
                 value={newGuest.role}
                 onChange={(e) => setNewGuest(prev => ({ ...prev, role: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleAdd(e as any)
+                  }
+                }}
                 placeholder="e.g., Bishop, Spel Ministries International"
               />
             </div>
@@ -171,6 +200,13 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
               label="Photo URL (Optional)"
               value={newGuest.photo_url}
               onChange={(e) => setNewGuest(prev => ({ ...prev, photo_url: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleAdd(e as any)
+                }
+              }}
               placeholder="https://example.com/photo.jpg"
             />
             <div>
@@ -178,6 +214,13 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
               <textarea
                 value={newGuest.bio}
                 onChange={(e) => setNewGuest(prev => ({ ...prev, bio: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleAdd(e as any)
+                  }
+                }}
                 placeholder="e.g., Guest Speaker from Kitwe"
                 className="w-full p-2 border rounded-md h-20 resize-none"
               />
@@ -190,6 +233,7 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
                   e.preventDefault()
                   e.stopPropagation()
                   handleAdd(e)
+                  return false
                 }}
               >
                 Add Guest
@@ -198,7 +242,11 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setIsAdding(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsAdding(false)
+                }}
               >
                 Cancel
               </Button>
@@ -207,7 +255,11 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
         ) : (
           <Button
             type="button"
-            onClick={() => setIsAdding(true)}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsAdding(true)
+            }}
             variant="outline"
             className="w-full"
           >
