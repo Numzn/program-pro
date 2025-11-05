@@ -1005,13 +1005,28 @@ async def bulk_update_program(
     Update a program with schedule items and guests in one atomic operation.
     This replaces all existing schedule items and guests with the new ones.
     """
+    logger.info("Bulk update program request received", extra={
+        "program_id": program_id,
+        "user_id": current_user.id,
+        "title": program_data.get("title"),
+        "has_schedule_items": len(program_data.get("schedule_items", [])),
+        "has_special_guests": len(program_data.get("special_guests", []))
+    })
+    
     # Verify program exists and user has permission
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
+        logger.warning("Program not found for bulk update", extra={"program_id": program_id})
         return create_api_response(error="Program not found")
     
     # Verify user's church matches program's church
     if program.church_id != current_user.church_id:
+        logger.warning("Unauthorized bulk update attempt", extra={
+            "program_id": program_id,
+            "user_id": current_user.id,
+            "program_church_id": program.church_id,
+            "user_church_id": current_user.church_id
+        })
         return create_api_response(error="Unauthorized")
     
     try:
@@ -1084,10 +1099,18 @@ async def bulk_update_program(
             # Execute parameterized SQL INSERT
             try:
                 sql = f"INSERT INTO schedule_items ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+                logger.debug("Executing schedule item INSERT", extra={
+                    "program_id": program.id,
+                    "sql": sql,
+                    "columns_to_insert": insert_cols,
+                    "existing_columns": schedule_columns
+                })
                 db.execute(text(sql), params)
             except Exception as e:
                 logger.error("Error adding schedule item in bulk update", exc_info=True, extra={
                     "program_id": program.id,
+                    "item_title": item.get("title"),
+                    "columns_to_insert": insert_cols,
                     "error": str(e)
                 })
                 # Continue with other items even if one fails
@@ -1108,7 +1131,16 @@ async def bulk_update_program(
                 logger.warning("Could not inspect special_guests columns, using minimal set", exc_info=True)
                 guest_columns = ['id', 'program_id', 'name']
         
+        logger.info("Special guests columns detected", extra={
+            "program_id": program_id,
+            "existing_columns": guest_columns
+        })
+        
         special_guests = program_data.get("special_guests", [])
+        logger.info("Processing special guests", extra={
+            "program_id": program_id,
+            "guest_count": len(special_guests)
+        })
         for guest in special_guests:
             # Build INSERT with only existing columns
             insert_cols = ['program_id', 'name']
@@ -1143,18 +1175,33 @@ async def bulk_update_program(
             # Execute parameterized SQL INSERT
             try:
                 sql = f"INSERT INTO special_guests ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)}) RETURNING id"
+                logger.debug("Executing special guest INSERT", extra={
+                    "program_id": program.id,
+                    "sql": sql,
+                    "columns_to_insert": insert_cols,
+                    "existing_columns": guest_columns
+                })
                 db.execute(text(sql), params)
             except Exception as e:
                 logger.error("Error adding special guest in bulk update", exc_info=True, extra={
                     "program_id": program.id,
+                    "guest_name": guest.get("name"),
+                    "columns_to_insert": insert_cols,
                     "error": str(e)
                 })
                 # Continue with other guests even if one fails
                 continue
         
         # Commit everything in one transaction
+        logger.info("Committing bulk update transaction", extra={"program_id": program_id})
         db.commit()
         db.refresh(program)
+        
+        logger.info("Bulk update completed successfully", extra={
+            "program_id": program_id,
+            "schedule_items_count": len(schedule_items),
+            "special_guests_count": len(special_guests)
+        })
         
         # Fetch and return complete updated program
         schedule_items_db = db.query(ScheduleItem).filter(ScheduleItem.program_id == program.id).all()
@@ -1176,6 +1223,12 @@ async def bulk_update_program(
         
     except Exception as e:
         db.rollback()
-        logger.error("Error in bulk update", exc_info=True, extra={"program_id": program_id})
-        return create_api_response(error=str(e))
+        error_msg = str(e)
+        logger.error("Error in bulk update", exc_info=True, extra={
+            "program_id": program_id,
+            "user_id": current_user.id,
+            "error": error_msg,
+            "error_type": type(e).__name__
+        })
+        return create_api_response(error=f"Failed to bulk update program: {error_msg}")
 
