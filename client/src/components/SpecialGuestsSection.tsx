@@ -23,8 +23,12 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
     photo_url: ''
   })
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleAdd = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation() // Prevent bubbling to parent form
+    }
+    
     if (!newGuest.name.trim()) {
       toast.error('Guest name is required')
       return
@@ -41,6 +45,7 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
     onGuestsChange([...specialGuests, guest])
     setNewGuest({ name: '', role: '', bio: '', photo_url: '' })
     setIsAdding(false)
+    toast.success('Guest added (will save when you publish)')
   }
 
   const handleDelete = (index: number) => {
@@ -143,7 +148,10 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
         )}
 
         {isAdding ? (
-          <form onSubmit={handleAdd} className="space-y-4 p-4 border border-border rounded-lg">
+          <div className="space-y-4 p-4 border border-border rounded-lg">
+            <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+              ℹ️ This guest will be saved locally. It will be saved to the database when you click "Publish Program".
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Input
                 label="Name"
@@ -175,7 +183,13 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
               />
             </div>
             <div className="flex gap-2">
-              <Button type="submit" size="sm">Add Guest</Button>
+              <Button 
+                type="button"
+                size="sm"
+                onClick={handleAdd}
+              >
+                Add Guest
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -185,7 +199,7 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
                 Cancel
               </Button>
             </div>
-          </form>
+          </div>
         ) : (
           <Button
             type="button"

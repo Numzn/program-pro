@@ -25,8 +25,11 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
     type: 'worship' as const
   })
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleAdd = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation() // Prevent bubbling to parent form
+    }
     
     console.log('📝 Adding schedule item (local only, no API call)', {
       newItem,
@@ -170,7 +173,7 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
         )}
 
         {isAdding ? (
-          <form onSubmit={handleAdd} className="space-y-4 p-4 border border-border rounded-lg">
+          <div className="space-y-4 p-4 border border-border rounded-lg">
             <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
               ℹ️ This item will be saved locally. It will be saved to the database when you click "Publish Program".
             </div>
@@ -210,7 +213,13 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
               </select>
             </div>
             <div className="flex gap-2">
-              <Button type="submit" size="sm">Add Item</Button>
+              <Button 
+                type="button"
+                size="sm"
+                onClick={handleAdd}
+              >
+                Add Item
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -220,7 +229,7 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
                 Cancel
               </Button>
             </div>
-          </form>
+          </div>
         ) : (
           <Button
             type="button"
