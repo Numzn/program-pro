@@ -27,29 +27,49 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    console.log('📝 Adding schedule item (local only, no API call)', {
+      newItem,
+      programDate,
+      currentItemsCount: scheduleItems.length
+    })
+    
     if (!newItem.title.trim()) {
       toast.error('Schedule item title is required')
       return
     }
 
-    const item: ScheduleItemInput = {
-      title: newItem.title.trim(),
-      description: newItem.description.trim() || undefined,
-      type: newItem.type || 'worship',
-      order_index: scheduleItems.length
-    }
+    try {
+      const item: ScheduleItemInput = {
+        title: newItem.title.trim(),
+        description: newItem.description.trim() || undefined,
+        type: newItem.type || 'worship',
+        order_index: scheduleItems.length
+      }
 
-    // Convert time to ISO string if provided
-    if (newItem.start_time.trim() && programDate) {
-      item.start_time = new Date(`${programDate}T${newItem.start_time}`).toISOString()
-    } else if (newItem.start_time.trim()) {
-      const today = new Date().toISOString().split('T')[0]
-      item.start_time = new Date(`${today}T${newItem.start_time}`).toISOString()
-    }
+      // Convert time to ISO string if provided
+      if (newItem.start_time.trim() && programDate) {
+        item.start_time = new Date(`${programDate}T${newItem.start_time}`).toISOString()
+      } else if (newItem.start_time.trim()) {
+        const today = new Date().toISOString().split('T')[0]
+        item.start_time = new Date(`${today}T${newItem.start_time}`).toISOString()
+      }
 
-    onItemsChange([...scheduleItems, item])
-    setNewItem({ title: '', description: '', start_time: '', type: 'worship' })
-    setIsAdding(false)
+      console.log('✅ Created schedule item object:', item)
+      
+      // This just updates local state - NO API CALL
+      onItemsChange([...scheduleItems, item])
+      
+      console.log('✅ Schedule item added to local state successfully')
+      
+      setNewItem({ title: '', description: '', start_time: '', type: 'worship' })
+      setIsAdding(false)
+      
+      toast.success('Schedule item added (will save when you publish)')
+    } catch (error: any) {
+      console.error('❌ Error adding schedule item locally:', error)
+      toast.error(`Failed to add item: ${error.message || 'Unknown error'}`)
+    }
   }
 
   const handleDelete = (index: number) => {
@@ -151,6 +171,9 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
 
         {isAdding ? (
           <form onSubmit={handleAdd} className="space-y-4 p-4 border border-border rounded-lg">
+            <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+              ℹ️ This item will be saved locally. It will be saved to the database when you click "Publish Program".
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Input
                 label="Title"
@@ -201,7 +224,10 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
         ) : (
           <Button
             type="button"
-            onClick={() => setIsAdding(true)}
+            onClick={() => {
+              console.log('🔘 Add Schedule Item button clicked - opening form (local only)')
+              setIsAdding(true)
+            }}
             variant="outline"
             className="w-full"
           >
