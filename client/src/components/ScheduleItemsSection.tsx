@@ -216,7 +216,11 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
               <Button 
                 type="button"
                 size="sm"
-                onClick={handleAdd}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleAdd(e)
+                }}
               >
                 Add Item
               </Button>

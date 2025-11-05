@@ -268,10 +268,19 @@ const AdminProgramEditorPage: React.FC = () => {
   // Submit form - everything at once
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation() // Prevent any bubbling
+    
+    console.log('📤 Form submission started', {
+      isEditing,
+      programId: id,
+      title: formData.title,
+      hasScheduleItems: scheduleItems.length,
+      hasGuests: specialGuests.length
+    })
     
     if (!user?.church_id) {
       toast.error('User not authenticated')
-      return
+      return false
     }
 
     // Validation
@@ -333,7 +342,10 @@ const AdminProgramEditorPage: React.FC = () => {
                           error.message || 
                           'Failed to save program'
       toast.error(errorMessage)
+      console.error('❌ Form submission error:', error)
     }
+    
+    return false // Prevent any default form behavior
   }
 
   if (isLoading) {
@@ -422,7 +434,13 @@ const AdminProgramEditorPage: React.FC = () => {
       {/* Mode Selector */}
       <ProgramModeSelector activeMode={mode} onModeChange={setMode} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form 
+        onSubmit={handleSubmit} 
+        className="space-y-6"
+        action="#" 
+        method="post"
+        noValidate
+      >
         {/* Conditional Rendering Based on Mode */}
         {mode === 'stepByStep' && (
           <StepByStepForm
@@ -457,7 +475,14 @@ const AdminProgramEditorPage: React.FC = () => {
             <Save className="h-4 w-4" />
             Save Draft
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            onClick={(e) => {
+              // Additional safety - prevent any default behavior
+              e.stopPropagation()
+            }}
+          >
             {isLoading ? (
               <>
                 <LoadingSpinner size="sm" className="mr-2" />
