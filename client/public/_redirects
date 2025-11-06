@@ -1,7 +1,6 @@
-# Render static site redirects for React Router
-# This file provides fallback routing if render.yaml routes aren't applied
-# All routes except /api/* should serve index.html for client-side routing
-
-/api/*  https://backend-5gvy.onrender.com/api/:splat  200
-/*      /index.html  200
+/api/*  https://backend-5gvy.onrender.com/api/*  200
+/admin/*  /index.html  200
+/program/*  /index.html  200
+/qr/*  /index.html  200
+/*  /index.html  200
 
