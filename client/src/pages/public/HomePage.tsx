@@ -107,18 +107,18 @@ const HomePage: React.FC = () => {
               {/* Program Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/60">
-                  <div className="text-2xl font-bold text-primary mb-1">{programs.length}</div>
+                  <div className="text-2xl font-bold text-primary mb-1">{programs.filter(p => p.is_active).length}</div>
                   <div className="text-sm text-gray-600">Active Programs</div>
                 </div>
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/60">
                   <div className="text-2xl font-bold text-accent mb-1">
-                    {programs.filter(p => isToday(p.date)).length}
+                    {programs.filter(p => p.is_active && isToday(p.date)).length}
                   </div>
                   <div className="text-sm text-gray-600">Today's Events</div>
                 </div>
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/60">
                   <div className="text-2xl font-bold text-secondary mb-1">
-                    {programs.filter(p => new Date(p.date) > new Date()).length}
+                    {programs.filter(p => p.is_active && new Date(p.date) > new Date()).length}
                   </div>
                   <div className="text-sm text-gray-600">Upcoming</div>
                 </div>
@@ -166,7 +166,7 @@ const HomePage: React.FC = () => {
           {/* Centered Program Cards */}
           <div className="max-w-4xl mx-auto">
             <div className="grid gap-6 lg:gap-8">
-          {programs.map((program) => (
+          {programs.filter(program => program.is_active).map((program) => (
               <div 
                 key={program.id} 
                 className="group relative"
@@ -211,17 +211,6 @@ const HomePage: React.FC = () => {
                             </div>
                           </div>
                     )}
-                  </div>
-
-                      {/* Right Content - Status Badge */}
-                      <div className="flex sm:flex-col items-start gap-2">
-                        <span className={`inline-flex items-center px-4 py-2 text-sm font-bold rounded-xl shadow-brand ${
-                      program.is_active 
-                            ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
-                            : 'bg-gray-200 text-gray-700'
-                    }`}>
-                          {program.is_active ? '✓ Active' : '○ Inactive'}
-                    </span>
                   </div>
                 </div>
               </CardHeader>
