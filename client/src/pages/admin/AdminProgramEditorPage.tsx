@@ -4,9 +4,7 @@ import { useProgramStore } from '../../store/programStore'
 import { useAuthStore } from '../../store/authStore'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
-import ProgramModeSelector, { ProgramMode } from '../../components/ProgramModeSelector'
 import StepByStepForm from '../../components/StepByStepForm'
-import BulkEntryForm from '../../components/BulkEntryForm'
 import { ScheduleItemInput, SpecialGuestInput } from '../../types'
 import { saveProgramDraft, loadProgramDraft, clearProgramDraft } from '../../utils/localStorage'
 import { useDebouncedCallback } from '../../hooks/useDebounce'
@@ -28,9 +26,6 @@ const AdminProgramEditorPage: React.FC = () => {
     bulkUpdateProgram
   } = useProgramStore()
   const { user } = useAuthStore()
-  
-  // Mode selector state
-  const [mode, setMode] = useState<ProgramMode>('stepByStep')
   
   // Program form data
   const [formData, setFormData] = useState({
@@ -247,22 +242,6 @@ const AdminProgramEditorPage: React.FC = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
-  }
-
-  // Handle bulk entry data
-  const handleBulkDataParsed = (data: {
-    formData: {
-      title: string
-      date: string
-      theme: string
-      is_active: boolean
-    }
-    scheduleItems: ScheduleItemInput[]
-    specialGuests: SpecialGuestInput[]
-  }) => {
-    setFormData(data.formData)
-    setScheduleItems(data.scheduleItems)
-    setSpecialGuests(data.specialGuests)
   }
 
   // Submit form - everything at once
@@ -487,9 +466,6 @@ const AdminProgramEditorPage: React.FC = () => {
         </div>
       )}
 
-      {/* Mode Selector */}
-      <ProgramModeSelector activeMode={mode} onModeChange={setMode} />
-
       <form 
         onSubmit={handleSubmit} 
         className="space-y-6"
@@ -497,21 +473,14 @@ const AdminProgramEditorPage: React.FC = () => {
         method="post"
         noValidate
       >
-        {/* Conditional Rendering Based on Mode */}
-        {mode === 'stepByStep' && (
-          <StepByStepForm
-            formData={formData}
-            scheduleItems={scheduleItems}
-            specialGuests={specialGuests}
-            onFormDataChange={handleChange}
-            onScheduleItemsChange={setScheduleItems}
-            onSpecialGuestsChange={setSpecialGuests}
-          />
-        )}
-
-        {mode === 'bulkEntry' && (
-          <BulkEntryForm onDataParsed={handleBulkDataParsed} />
-        )}
+        <StepByStepForm
+          formData={formData}
+          scheduleItems={scheduleItems}
+          specialGuests={specialGuests}
+          onFormDataChange={handleChange}
+          onScheduleItemsChange={setScheduleItems}
+          onSpecialGuestsChange={setSpecialGuests}
+        />
 
         {/* Submit Button */}
         <div className="flex justify-end gap-4 pt-4 border-t">
