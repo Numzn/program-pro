@@ -1,6 +1,9 @@
 /api/*  https://backend-5gvy.onrender.com/api/*  200
+/admin  /index.html  200
 /admin/*  /index.html  200
+/program  /index.html  200
 /program/*  /index.html  200
+/qr  /index.html  200
 /qr/*  /index.html  200
 /*  /index.html  200
 

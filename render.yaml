@@ -9,10 +9,19 @@ services:
         source: /api/*
         destination: https://backend-5gvy.onrender.com/api/*
       - type: rewrite
+        source: /admin
+        destination: /index.html
+      - type: rewrite
         source: /admin/*
         destination: /index.html
       - type: rewrite
+        source: /program
+        destination: /index.html
+      - type: rewrite
         source: /program/*
+        destination: /index.html
+      - type: rewrite
+        source: /qr
         destination: /index.html
       - type: rewrite
         source: /qr/*
