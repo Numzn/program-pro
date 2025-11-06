@@ -6,11 +6,16 @@ import { formatDate, formatTime } from '../../utils/date'
 
 const ProgramViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
-  const { activeProgram, isLoading, fetchProgramById } = useProgramStore()
+  const { activeProgram, isLoading, error, fetchProgramById } = useProgramStore()
 
   useEffect(() => {
     if (id) {
-      fetchProgramById(parseInt(id))
+      const programId = parseInt(id)
+      if (!isNaN(programId)) {
+        fetchProgramById(programId).catch((err) => {
+          console.error('Failed to fetch program:', err)
+        })
+      }
     }
   }, [id, fetchProgramById])
 
@@ -22,13 +27,19 @@ const ProgramViewPage: React.FC = () => {
     )
   }
 
-  if (!activeProgram) {
+  if (error || !activeProgram) {
     return (
       <div className="text-center py-8">
         <h2 className="text-2xl font-bold mb-4">Program Not Found</h2>
-        <p className="text-muted-foreground">
-          The program you're looking for doesn't exist or has been removed.
+        <p className="text-muted-foreground mb-4">
+          {error || "The program you're looking for doesn't exist or has been removed."}
         </p>
+        <a 
+          href="/" 
+          className="text-primary hover:text-accent font-semibold transition-colors"
+        >
+          ← Back to Home
+        </a>
       </div>
     )
   }
@@ -72,7 +83,7 @@ const ProgramViewPage: React.FC = () => {
 
       <div className="max-w-4xl mx-auto px-4 pb-16 relative z-10">
         {/* Schedule Section - The Journey */}
-        {activeProgram.schedule_items && activeProgram.schedule_items.length > 0 && (
+        {activeProgram.schedule_items && Array.isArray(activeProgram.schedule_items) && activeProgram.schedule_items.length > 0 && (
           <div className="mb-16">
             <div className="text-center mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Our Journey Together</h2>
@@ -133,7 +144,7 @@ const ProgramViewPage: React.FC = () => {
         )}
 
         {/* Special Guests Section - Meet Our Speakers */}
-        {activeProgram.special_guests && activeProgram.special_guests.length > 0 && (
+        {activeProgram.special_guests && Array.isArray(activeProgram.special_guests) && activeProgram.special_guests.length > 0 && (
           <div className="mb-16">
             <div className="text-center mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Meet Our Speakers</h2>
@@ -187,7 +198,7 @@ const ProgramViewPage: React.FC = () => {
         )}
 
         {/* Resources Section - Additional Materials */}
-        {activeProgram.resources && activeProgram.resources.length > 0 && (
+        {activeProgram.resources && Array.isArray(activeProgram.resources) && activeProgram.resources.length > 0 && (
           <div className="mb-16">
             <div className="text-center mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Additional Resources</h2>

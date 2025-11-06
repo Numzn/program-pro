@@ -247,9 +247,12 @@ class ApiService {
   async logout(): Promise<void> {
     try {
       await this.api.post('/auth/logout')
-    } finally {
-      // AuthStore handles state cleanup in logout()
-      // This method is kept for backward compatibility
+    } catch (error: any) {
+      // Log error for debugging
+      console.error('Logout API error:', error)
+      // Re-throw to let caller handle it
+      // AuthStore will still clear state in finally block
+      throw error
     }
   }
 

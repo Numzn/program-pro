@@ -18,8 +18,16 @@ const AdminDashboardPage: React.FC = () => {
   }, [user?.church_id, fetchPrograms])
 
   const handleLogout = async () => {
-    await logout()
-    window.location.href = '/admin/login'
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Still redirect even if logout API call fails
+      // State is already cleared in authStore
+    } finally {
+      // Always redirect to login page after logout attempt
+      window.location.href = '/admin/login'
+    }
   }
 
   if (isLoading) {

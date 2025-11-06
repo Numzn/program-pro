@@ -239,7 +239,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     
     try {
       await apiService.logout()
+    } catch (error) {
+      // Log error but still clear local state
+      console.error('Logout API call failed:', error)
+      // State will be cleared in finally block regardless
     } finally {
+      // Always clear state, even if API call fails
       set({
         user: null,
         token: null,

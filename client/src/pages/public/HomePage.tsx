@@ -8,16 +8,20 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import { formatDate, isToday } from '../../utils/date'
 
 const HomePage: React.FC = () => {
-  const { programs, isLoading, fetchPrograms } = useProgramStore()
-  const { church, fetchChurchInfo } = useChurchStore()
+  const { programs, isLoading, error: programsError, fetchPrograms } = useProgramStore()
+  const { church, isLoading: churchLoading, error: churchError, fetchChurchInfo } = useChurchStore()
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showInstallButton, setShowInstallButton] = useState(false)
 
   useEffect(() => {
     // Fetch all active programs
-    fetchPrograms(undefined, true)
+    fetchPrograms(undefined, true).catch((err) => {
+      console.error('Failed to fetch programs:', err)
+    })
     // Fetch church info (public endpoint)
-    fetchChurchInfo()
+    fetchChurchInfo().catch((err) => {
+      console.error('Failed to fetch church info:', err)
+    })
 
     // Listen for PWA install prompt
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -47,10 +51,25 @@ const HomePage: React.FC = () => {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || churchLoading) {
     return (
       <div className="flex items-center justify-center min-h-64">
         <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
+  // Show error state if both failed
+  if (programsError && churchError) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold mb-4">Unable to Load Content</h2>
+        <p className="text-muted-foreground mb-6">
+          {programsError || 'Failed to load programs. Please try again later.'}
+        </p>
+        <Button onClick={() => window.location.reload()}>
+          Retry
+        </Button>
       </div>
     )
   }

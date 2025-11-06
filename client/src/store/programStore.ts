@@ -50,7 +50,7 @@ export const useProgramStore = create<ProgramStore>((set) => ({
   },
 
   fetchProgramById: async (id: number) => {
-    set({ isLoading: true, error: null })
+    set({ isLoading: true, error: null, activeProgram: null })
     try {
       console.log('🔍 Fetching program ID:', id)
       const program = await apiService.getProgramById(id)
@@ -58,7 +58,7 @@ export const useProgramStore = create<ProgramStore>((set) => ({
       set({ activeProgram: program, isLoading: false })
     } catch (error: any) {
       console.error('❌ Error fetching program:', error)
-      set({ isLoading: false, error: error.message })
+      set({ isLoading: false, error: error.message, activeProgram: null })
       throw error
     }
   },
