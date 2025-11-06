@@ -3,12 +3,18 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+// Generate build version based on timestamp for cache busting
+const buildVersion = `v${Date.now()}`
+
 // Force rebuild - Updated: 2025-10-29 - Use correct backend URL
 // Vite configuration for Church Program Pro - Render deployment ready
 // FORCE REDEPLOYMENT: Clear all caches and rebuild with correct API URL
 // Updated: 2025-10-29 - Add Vite proxy for local dev and fix Render API URL
 // CRITICAL FIX: Frontend still using old URL - Force complete rebuild
 export default defineConfig({
+  define: {
+    __BUILD_VERSION__: JSON.stringify(buildVersion),
+  },
   plugins: [
     react(),
     VitePWA({
@@ -23,6 +29,12 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        // Clear all caches on new deployment
+        cacheId: buildVersion,
+        // Force update on every deployment
+        dontCacheBustURLsMatching: /^\/api\//,
+        // Clear runtime caches on update
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
         runtimeCaching: [
           {
             urlPattern: /^http:\/\/localhost:8000\/api\/.*/i,

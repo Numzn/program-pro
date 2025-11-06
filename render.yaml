@@ -2,7 +2,7 @@ services:
   - type: web
     name: program-pro-client
     runtime: static
-    buildCommand: cd client && npm ci && npm run build
+    buildCommand: cd client && npm ci && rm -rf dist node_modules/.vite && npm run build
     staticPublishPath: ./client/dist
     routes:
       - type: rewrite
