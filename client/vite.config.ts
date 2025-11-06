@@ -25,7 +25,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallbackDenylist: [/^\/api/, /^\/_/, /\.(?:js|css|png|jpg|jpeg|svg|gif|ico|woff|woff2|ttf|eot)$/],
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
@@ -35,6 +35,8 @@ export default defineConfig({
         dontCacheBustURLsMatching: /^\/api\//,
         // Clear runtime caches on update
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+        // Don't cache navigation requests - always use network first, then fallback
+        navigationPreload: true,
         runtimeCaching: [
           {
             urlPattern: /^http:\/\/localhost:8000\/api\/.*/i,
@@ -51,7 +53,7 @@ export default defineConfig({
           {
             urlPattern: /^http:\/\/localhost:3000\/api\/.*/i,
             handler: 'NetworkOnly'
-          }
+          },
         ]
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],

@@ -4,6 +4,10 @@ services:
     runtime: static
     buildCommand: cd client && npm ci && rm -rf dist node_modules/.vite && npm run build
     staticPublishPath: ./client/dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
     routes:
       - type: rewrite
         source: /api/*
