@@ -4,6 +4,18 @@ import apiService from '../services/api'
 import { getTimeUntilRefresh } from '../utils/jwt'
 import axios from 'axios'
 
+const resolveApiBaseUrl = () => {
+  const envUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
+  if (envUrl && envUrl.trim().length > 0) {
+    return envUrl.trim()
+  }
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin.replace(/\/$/, '')
+    return `${origin}/api`
+  }
+  return '/api'
+}
+
 interface AuthStore {
   user: User | null
   token: string | null
@@ -125,11 +137,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
     
     try {
-      // Get the API base URL (reuse logic from ApiService)
-      const isProduction = typeof window !== 'undefined' && window.location.hostname === 'program-pro-1.onrender.com'
-      const apiUrl = isProduction 
-        ? 'https://backend-5gvy.onrender.com/api/v1'
-        : (import.meta as any).env?.VITE_API_URL || '/api'
+      const apiUrl = resolveApiBaseUrl()
       
       const response = await axios.get(`${apiUrl}/auth/me`, {
         headers: {
@@ -172,10 +180,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   refreshToken: async () => {
-    const isProduction = typeof window !== 'undefined' && window.location.hostname === 'program-pro-1.onrender.com'
-    const apiUrl = isProduction 
-      ? 'https://backend-5gvy.onrender.com/api/v1'
-      : (import.meta as any).env?.VITE_API_URL || '/api'
+    const apiUrl = resolveApiBaseUrl()
     
     try {
       const response = await axios.post(

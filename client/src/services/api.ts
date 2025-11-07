@@ -12,24 +12,22 @@ class ApiService {
   }> = []
 
   constructor() {
-    // Runtime detection: Check if we're on Render production
-    const isProduction = typeof window !== 'undefined' && window.location.hostname === 'program-pro-1.onrender.com'
-    
-    // CRITICAL: Override env var if we're on production to fix old cached builds
-    let apiUrl: string
-    if (isProduction) {
-      // Force correct URL for production (v1)
-      apiUrl = 'https://backend-5gvy.onrender.com/api/v1'
-      console.log('🚨 PRODUCTION: Forcing correct API URL, ignoring env var')
-    } else {
-      // For local/dev, use env var or fallback to relative path (Vite proxy)
-      apiUrl = (import.meta as any).env?.VITE_API_URL || '/api'
+    const envApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
+    const normalizedEnvUrl = envApiUrl && envApiUrl.trim().length > 0 ? envApiUrl.trim() : undefined
+
+    let apiUrl = normalizedEnvUrl
+    if (!apiUrl) {
+      if (typeof window !== 'undefined') {
+        const origin = window.location.origin.replace(/\/$/, '')
+        apiUrl = `${origin}/api`
+      } else {
+        apiUrl = '/api'
+      }
     }
-    
+
     console.log('🌐 API Service initialized with URL:', apiUrl)
-    console.log('🔧 Environment VITE_API_URL:', (import.meta as any).env?.VITE_API_URL)
+    console.log('🔧 Environment VITE_API_URL:', normalizedEnvUrl || '(not set)')
     console.log('🌍 Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server-side')
-    console.log('🎯 Using:', isProduction ? 'Production URL (FORCED)' : 'Env var or default')
     
     this.api = axios.create({
       baseURL: apiUrl,
@@ -538,11 +536,10 @@ class ApiService {
     throw new Error(response.data.error || 'Failed to fetch template')
   }
 
-  async saveTemplate(name: string, description: string, templateData: string): Promise<any> {
+  async saveTemplate(name: string, content: string): Promise<any> {
     const response = await this.api.post<ApiResponse<any>>('/templates', {
       name,
-      description,
-      template_data: templateData
+      content
     })
     
     if (response.data.success && response.data.data) {
@@ -551,7 +548,7 @@ class ApiService {
     throw new Error(response.data.error || 'Failed to save template')
   }
 
-  async updateTemplate(id: number, data: { name?: string; description?: string; template_data?: string }): Promise<any> {
+  async updateTemplate(id: number, data: { name?: string; content?: string }): Promise<any> {
     const response = await this.api.put<ApiResponse<any>>(`/templates/${id}`, data)
     
     if (response.data.success && response.data.data) {

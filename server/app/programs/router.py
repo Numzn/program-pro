@@ -132,6 +132,7 @@ async def get_program_by_id(program_id: int, db: Session = Depends(get_db)):
             "title": safe_get_attr(program, 'title', ''),
             "date": safe_get_attr(program, 'date', None),
             "theme": safe_get_attr(program, 'theme', None),
+            "is_active": safe_get_attr(program, 'is_active', True),
             "created_at": safe_get_attr(program, 'created_at', None) or datetime.now(),
             "schedule_items": schedule_items_data,
             "special_guests": special_guests_data

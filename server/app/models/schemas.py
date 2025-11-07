@@ -239,8 +239,8 @@ class ProgramResponse(ProgramBase):
 
 
 class ProgramWithDetailsResponse(ProgramResponse):
-    schedule_items: List[ScheduleItemResponse] = []
-    special_guests: List[SpecialGuestResponse] = []
+    schedule_items: List[ScheduleItemResponse] = Field(default_factory=list)
+    special_guests: List[SpecialGuestResponse] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -272,13 +272,19 @@ class TemplateResponse(TemplateBase):
 # Church schemas
 class ChurchUpdate(BaseModel):
     name: Optional[str] = None
+    short_name: Optional[str] = None
     address: Optional[str] = None
+    description: Optional[str] = None
+    theme_config: Optional[str] = None
 
 
 class ChurchResponse(BaseModel):
     id: int
     name: str
+    short_name: Optional[str] = None
     address: Optional[str] = None
+    description: Optional[str] = None
+    theme_config: Optional[str] = None
     created_at: datetime
 
     class Config:

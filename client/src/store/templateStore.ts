@@ -4,9 +4,9 @@ import apiService from '../services/api'
 export interface Template {
   id: number
   name: string
-  description?: string
-  template_data: string
+  content: string
   created_at: string
+  church_id?: number | null
 }
 
 interface TemplateStore {
@@ -15,7 +15,7 @@ interface TemplateStore {
   error: string | null
   
   fetchTemplates: () => Promise<void>
-  saveTemplate: (name: string, description: string, data: string) => Promise<void>
+  saveTemplate: (name: string, content: string) => Promise<void>
   deleteTemplate: (id: number) => Promise<void>
   clearError: () => void
 }
@@ -35,10 +35,10 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
     }
   },
 
-  saveTemplate: async (name: string, description: string, data: string) => {
+  saveTemplate: async (name: string, content: string) => {
     set({ isLoading: true, error: null })
     try {
-      const template = await apiService.saveTemplate(name, description, data)
+      const template = await apiService.saveTemplate(name, content)
       
       // Add to local state
       set((state) => ({

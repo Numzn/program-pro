@@ -1,9 +1,10 @@
 export interface User {
   id: number
   username: string
-  email: string
-  role: 'CONGREGATION' | 'EDITOR' | 'ADMIN'
-  church_id: number
+  email?: string | null
+  role: string
+  church_id?: number | null
+  created_at?: string
 }
 
 export interface AuthState {
@@ -17,22 +18,23 @@ export interface Program {
   id: number
   church_id: number
   title: string
-  date: string
-  theme?: string
+  date?: string | null
+  theme?: string | null
   is_active: boolean
-  created_by: number
+  created_by?: number | null
   created_at: string
-  updated_at: string
+  updated_at?: string | null
 }
 
 export interface ScheduleItem {
   id: number
   program_id: number
   title: string
-  description?: string
-  start_time?: string
+  description?: string | null
+  start_time?: string | null
+  duration_minutes?: number | null
   order_index: number
-  type: 'worship' | 'sermon' | 'announcement' | 'special'
+  type: string
   created_at: string
 }
 
@@ -40,9 +42,10 @@ export interface SpecialGuest {
   id: number
   program_id: number
   name: string
-  role?: string
-  bio?: string
-  photo_url?: string
+  role?: string | null
+  description?: string | null
+  bio?: string | null
+  photo_url?: string | null
   display_order: number
   created_at: string
 }
@@ -60,7 +63,7 @@ export interface Resource {
 export interface ProgramWithDetails extends Program {
   schedule_items: ScheduleItem[]
   special_guests: SpecialGuest[]
-  resources: Resource[]
+  resources?: Resource[]
 }
 
 export interface ApiResponse<T = any> {

@@ -30,7 +30,13 @@ async def get_template_by_id(
     db: Session = Depends(get_db)
 ):
     """Get a specific template."""
-    template = db.query(ProgramTemplate).filter(ProgramTemplate.id == template_id).first()
+    if not current_user.church_id:
+        return create_api_response(error="User has no associated church")
+
+    template = db.query(ProgramTemplate).filter(
+        ProgramTemplate.id == template_id,
+        ProgramTemplate.church_id == current_user.church_id
+    ).first()
     if not template:
         return create_api_response(error="Template not found")
     
@@ -47,6 +53,8 @@ async def create_template(
     """Create a new template."""
     if not current_user.church_id:
         return create_api_response(error="User has no associated church")
+    if not template_data.content or not template_data.content.strip():
+        return create_api_response(error="Template content is required")
     
     template = ProgramTemplate(
         church_id=current_user.church_id,
@@ -69,7 +77,13 @@ async def update_template(
     db: Session = Depends(get_db)
 ):
     """Update an existing template."""
-    template = db.query(ProgramTemplate).filter(ProgramTemplate.id == template_id).first()
+    if not current_user.church_id:
+        return create_api_response(error="User has no associated church")
+
+    template = db.query(ProgramTemplate).filter(
+        ProgramTemplate.id == template_id,
+        ProgramTemplate.church_id == current_user.church_id
+    ).first()
     if not template:
         return create_api_response(error="Template not found")
     
@@ -92,7 +106,16 @@ async def delete_template(
     db: Session = Depends(get_db)
 ):
     """Delete a template."""
-    template = db.query(ProgramTemplate).filter(ProgramTemplate.id == template_id).first()
+    if not current_user.church_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+
+    template = db.query(ProgramTemplate).filter(
+        ProgramTemplate.id == template_id,
+        ProgramTemplate.church_id == current_user.church_id
+    ).first()
     if not template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

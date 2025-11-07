@@ -26,7 +26,10 @@ async def get_church_info(church_id: Optional[int] = None, db: Session = Depends
         default_church = {
             "id": 0,
             "name": "Numz",
+            "short_name": None,
             "address": None,
+            "description": None,
+            "theme_config": None,
             "created_at": None
         }
         return create_api_response(data=default_church)
@@ -69,8 +72,14 @@ async def update_church_settings(
     # Update fields
     if settings.name is not None:
         church.name = settings.name
+    if settings.short_name is not None:
+        church.short_name = settings.short_name
     if settings.address is not None:
         church.address = settings.address
+    if settings.description is not None:
+        church.description = settings.description
+    if settings.theme_config is not None:
+        church.theme_config = settings.theme_config
     
     db.commit()
     db.refresh(church)

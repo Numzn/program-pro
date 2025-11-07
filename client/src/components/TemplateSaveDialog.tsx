@@ -21,7 +21,6 @@ const TemplateSaveDialog: React.FC<TemplateSaveDialogProps> = ({
 }) => {
   const { saveTemplate } = useTemplateStore()
   const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   const handleSave = async (e: React.FormEvent) => {
@@ -40,14 +39,13 @@ const TemplateSaveDialog: React.FC<TemplateSaveDialogProps> = ({
     setIsSaving(true)
 
     try {
-      await saveTemplate(name.trim(), description.trim(), templateData)
+      await saveTemplate(name.trim(), templateData)
       toast.success('Template saved successfully!')
       onSaved()
       onClose()
       
       // Reset form
       setName('')
-      setDescription('')
     } catch (error: any) {
       toast.error(error.message || 'Failed to save template')
     } finally {
@@ -57,7 +55,6 @@ const TemplateSaveDialog: React.FC<TemplateSaveDialogProps> = ({
 
   const handleCancel = () => {
     setName('')
-    setDescription('')
     onClose()
   }
 
@@ -89,20 +86,6 @@ const TemplateSaveDialog: React.FC<TemplateSaveDialogProps> = ({
               />
             </div>
             
-            <div>
-              <label htmlFor="template-description" className="block text-sm font-medium text-foreground mb-2">
-                Description
-              </label>
-              <textarea
-                id="template-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground shadow-sm"
-                placeholder="Brief description of this template..."
-              />
-            </div>
-
             <div className="flex gap-3 pt-4">
               <Button
                 type="button"

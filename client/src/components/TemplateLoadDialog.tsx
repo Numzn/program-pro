@@ -3,14 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/Button'
 import { LoadingSpinner } from './ui/LoadingSpinner'
 import { useTemplateStore } from '../store/templateStore'
+import type { Template } from '../store/templateStore'
+import apiService from '../services/api'
 import toast from 'react-hot-toast'
-
-interface Template {
-  id: number
-  name: string
-  description?: string
-  created_at: string
-}
 
 interface TemplateLoadDialogProps {
   isOpen: boolean
@@ -35,20 +30,14 @@ const TemplateLoadDialog: React.FC<TemplateLoadDialogProps> = ({
 
   const handleLoad = async (template: Template) => {
     try {
-      // Fetch the full template data
-      const response = await fetch(`/api/templates/${template.id}`)
-      if (!response.ok) {
-        throw new Error('Failed to load template')
+      const templateResponse = await apiService.getTemplateById(template.id)
+      if (!templateResponse?.content) {
+        throw new Error('Template content missing')
       }
-      
-      const data = await response.json()
-      if (data.success) {
-        onLoad(data.data.template_data)
-        toast.success('Template loaded successfully!')
-        onClose()
-      } else {
-        throw new Error(data.error || 'Failed to load template')
-      }
+
+      onLoad(templateResponse.content)
+      toast.success('Template loaded successfully!')
+      onClose()
     } catch (error: any) {
       toast.error(error.message || 'Failed to load template')
     }
@@ -129,9 +118,9 @@ const TemplateLoadDialog: React.FC<TemplateLoadDialogProps> = ({
                       <h3 className="font-semibold text-foreground mb-1 truncate">
                         {template.name}
                       </h3>
-                      {template.description && (
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                          {template.description}
+                      {template.content && (
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2 whitespace-pre-wrap">
+                          {template.content}
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground">

@@ -4,11 +4,11 @@ import apiService from '../services/api'
 export interface Church {
   id: number
   name: string
-  short_name?: string
-  slug: string
-  description?: string
-  theme_config?: string
-  created_at: string
+  short_name?: string | null
+  address?: string | null
+  description?: string | null
+  theme_config?: string | null
+  created_at: string | null
 }
 
 interface ChurchStore {
