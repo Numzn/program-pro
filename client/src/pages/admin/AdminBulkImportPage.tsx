@@ -442,52 +442,50 @@ const AdminBulkImportPage: React.FC = () => {
     }
   }
 
+  const templateDownloadOptions = [
+    { label: 'Conference', value: 'conference' as const },
+    { label: 'Weekly', value: 'weekly' as const },
+    { label: 'Simple', value: 'simple' as const }
+  ]
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Premium Header */}
       <div className="relative overflow-hidden rounded-2xl shadow-brand-lg p-8 bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-black text-foreground mb-2">Bulk Import</h1>
-            <p className="text-muted-foreground text-base">
-              Import programs from JSON templates with schedule items and special guests
+            <h1 className="text-3xl sm:text-4xl font-black text-foreground mb-1">Bulk Import</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Import a program from a JSON template, edit it, and save it instantly.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setShowLoadDialog(true)} className="shadow-brand">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setShowLoadDialog(true)} className="shadow-brand">
               Load Template
             </Button>
             <Button variant="outline" onClick={loadSampleTemplate} className="shadow-brand">
               Load Sample
             </Button>
-            <Button variant="outline" onClick={clearTemplate} className="shadow-brand">
-              Clear
+            <Button variant="ghost" onClick={clearTemplate} className="shadow-brand hover:bg-muted">
+              Clear Editor
             </Button>
-            <div className="flex gap-1">
-              <Button 
-                variant="outline" 
-                onClick={() => downloadTemplate('conference')} 
-                className="shadow-brand text-xs"
-                size="sm"
-              >
-                Download Conference Template
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => downloadTemplate('weekly')} 
-                className="shadow-brand text-xs"
-                size="sm"
-              >
-                Download Weekly Template
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => downloadTemplate('simple')} 
-                className="shadow-brand text-xs"
-                size="sm"
-              >
-                Download Simple Template
-              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Download templates:
+              </span>
+              {templateDownloadOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadTemplate(option.value)}
+                  className="shadow-brand text-xs px-3 py-2"
+                >
+                  {option.label}
+                </Button>
+              ))}
             </div>
           </div>
         </div>
