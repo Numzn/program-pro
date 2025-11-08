@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
 from datetime import datetime
+import re
 from app.database.connection import get_db
 from app.models.database import Program, ScheduleItem, SpecialGuest, Church
 from app.models.schemas import (
@@ -52,6 +53,32 @@ def safe_get_attr(obj, attr, default=None):
         return value if value is not None else default
     except (AttributeError, KeyError):
         return default
+
+
+def normalize_start_time_value(value):
+    """Normalize various start_time inputs to HH:MM string or None."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        trimmed = value.strip()
+        if not trimmed:
+            return None
+        if re.match(r'^\d{2}:\d{2}$', trimmed):
+            return trimmed
+        if re.match(r'^\d{2}:\d{2}:\d{2}$', trimmed):
+            return trimmed[:5]
+        try:
+            parsed = datetime.fromisoformat(trimmed.replace('Z', '+00:00'))
+            return parsed.strftime('%H:%M')
+        except ValueError:
+            return trimmed
+    if isinstance(value, datetime):
+        return value.strftime('%H:%M')
+    try:
+        # Handle datetime.time
+        return value.strftime('%H:%M')  # type: ignore[attr-defined]
+    except AttributeError:
+        return str(value)
 
 
 @router.get("/{program_id}")
@@ -324,7 +351,7 @@ async def add_schedule_item(
         if 'start_time' in columns and item_data.start_time:
             insert_cols.append('start_time')
             placeholders.append(':start_time')
-            params['start_time'] = item_data.start_time
+            params['start_time'] = normalize_start_time_value(item_data.start_time)
         
         if 'duration_minutes' in columns and item_data.duration_minutes is not None:
             insert_cols.append('duration_minutes')
@@ -603,7 +630,7 @@ async def update_schedule_item(
     if item_data.description is not None:
         schedule_item.description = item_data.description
     if item_data.start_time is not None:
-        schedule_item.start_time = item_data.start_time
+        schedule_item.start_time = normalize_start_time_value(item_data.start_time)
     if item_data.duration_minutes is not None:
         schedule_item.duration_minutes = item_data.duration_minutes
     if item_data.order_index is not None:
@@ -876,7 +903,7 @@ async def bulk_import_program(
             if 'start_time' in schedule_columns and item.get("start_time"):
                 insert_cols.append('start_time')
                 placeholders.append(':start_time')
-                params['start_time'] = item.get("start_time")
+                params['start_time'] = normalize_start_time_value(item.get("start_time"))
             
             # Only include duration_minutes if column exists
             if 'duration_minutes' in schedule_columns and item.get("duration_minutes") is not None:
@@ -1088,7 +1115,7 @@ async def bulk_update_program(
             if 'start_time' in schedule_columns and item.get("start_time"):
                 insert_cols.append('start_time')
                 placeholders.append(':start_time')
-                params['start_time'] = item.get("start_time")
+                params['start_time'] = normalize_start_time_value(item.get("start_time"))
             
             # Only include duration_minutes if column exists
             if 'duration_minutes' in schedule_columns and item.get("duration_minutes") is not None:

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Any, Union
-from datetime import datetime
+from datetime import datetime, time
 import re
 
 
@@ -133,7 +133,7 @@ class ProgramUpdate(BaseModel):
 class ScheduleItemBase(BaseModel):
     title: str
     description: Optional[str] = None
-    start_time: Optional[datetime] = None
+    start_time: Optional[str] = None
     duration_minutes: Optional[int] = None
     order_index: Optional[int] = None
     type: Optional[str] = "worship"  # worship, sermon, announcement, special
@@ -141,17 +141,28 @@ class ScheduleItemBase(BaseModel):
     @field_validator('start_time', mode='before')
     @classmethod
     def parse_start_time(cls, v):
-        """Handle start_time conversion from string to datetime, or None for empty values."""
+        """Normalize start_time to HH:MM (string) while accepting various formats."""
         if v is None or v == "" or v == "null":
             return None
+        # Handle datetime and time objects
+        if isinstance(v, datetime):
+            return v.strftime('%H:%M')
+        if isinstance(v, time):
+            return v.strftime('%H:%M')
         if isinstance(v, str):
+            value = v.strip()
+            # Accept HH:MM or HH:MM:SS formats
+            if re.match(r'^\d{2}:\d{2}$', value):
+                return value
+            if re.match(r'^\d{2}:\d{2}:\d{2}$', value):
+                return value[:5]
+            # Try ISO datetime string
             try:
-                # Try parsing ISO format datetime string
-                return datetime.fromisoformat(v.replace('Z', '+00:00'))
+                parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                return parsed.strftime('%H:%M')
             except (ValueError, AttributeError):
-                # If parsing fails, return None instead of raising error
-                return None
-        return v
+                return value
+        return str(v)
 
     @field_validator('order_index', mode='before')
     @classmethod
@@ -172,7 +183,7 @@ class ScheduleItemCreate(ScheduleItemBase):
 class ScheduleItemUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    start_time: Optional[datetime] = None
+    start_time: Optional[str] = None
     duration_minutes: Optional[int] = None
     order_index: Optional[int] = None
     type: Optional[str] = None

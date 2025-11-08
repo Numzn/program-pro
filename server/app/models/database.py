@@ -48,7 +48,7 @@ class ScheduleItem(Base):
     program_id = Column(Integer, ForeignKey("programs.id"), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    start_time = Column(DateTime(timezone=True))
+    start_time = Column(String(16))
     duration_minutes = Column(Integer)
     order_index = Column(Integer)
     type = Column(String(50), default="worship")  # worship, sermon, announcement, special

@@ -64,7 +64,7 @@ def test_form_data_structure():
             {
                 "title": "Test Schedule Item",
                 "description": "Test Description",
-                "start_time": "2025-12-25T14:00:00",
+                "start_time": "14:00",
                 "type": "sermon",
                 "order_index": 0
             }
@@ -115,7 +115,7 @@ def test_sql_insert_building():
     item_data = {
         "title": "Test Item",
         "description": "Test Desc",
-        "start_time": "2025-12-25T14:00:00",
+        "start_time": "14:00",
         "type": "sermon",
         "order_index": 0
     }
