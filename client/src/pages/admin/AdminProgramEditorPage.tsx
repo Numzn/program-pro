@@ -352,7 +352,7 @@ const AdminProgramEditorPage: React.FC = () => {
       
       const programData = {
         title: formData.title.trim(),
-        date: formData.date ? new Date(formData.date + 'T00:00:00').toISOString() : null,
+        date: formData.date || null,
         theme: formData.theme?.trim() || null,
         is_active: formData.is_active,
         schedule_items: cleanedScheduleItems,

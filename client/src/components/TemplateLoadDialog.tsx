@@ -5,6 +5,7 @@ import { LoadingSpinner } from './ui/LoadingSpinner'
 import { useTemplateStore } from '../store/templateStore'
 import type { Template } from '../store/templateStore'
 import apiService from '../services/api'
+import { formatDateShort } from '../utils/date'
 import toast from 'react-hot-toast'
 
 interface TemplateLoadDialogProps {
@@ -57,14 +58,6 @@ const TemplateLoadDialog: React.FC<TemplateLoadDialogProps> = ({
     } finally {
       setIsDeleting(null)
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
   }
 
   if (!isOpen) return null
@@ -123,9 +116,11 @@ const TemplateLoadDialog: React.FC<TemplateLoadDialogProps> = ({
                           {template.content}
                         </p>
                       )}
-                      <p className="text-xs text-muted-foreground">
-                        Created {formatDate(template.created_at)}
-                      </p>
+                      {template.created_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Created {formatDateShort(template.created_at)}
+                        </p>
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-2 ml-4">
