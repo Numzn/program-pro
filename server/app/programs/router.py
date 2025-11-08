@@ -1123,8 +1123,8 @@ async def bulk_update_program(
                     "columns_to_insert": insert_cols,
                     "error": str(e)
                 })
-                # Continue with other items even if one fails
-                continue
+                db.rollback()
+                raise
         
         # Add new special guests - check which columns exist first
         guest_columns = [col['name'] for col in inspector.get_columns('special_guests')]
@@ -1199,8 +1199,8 @@ async def bulk_update_program(
                     "columns_to_insert": insert_cols,
                     "error": str(e)
                 })
-                # Continue with other guests even if one fails
-                continue
+                db.rollback()
+                raise
         
         # Commit everything in one transaction
         logger.info("Committing bulk update transaction", extra={"program_id": program_id})
