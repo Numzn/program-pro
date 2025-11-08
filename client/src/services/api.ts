@@ -13,7 +13,26 @@ class ApiService {
 
   constructor() {
     const envApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
-    const normalizedEnvUrl = envApiUrl && envApiUrl.trim().length > 0 ? envApiUrl.trim() : undefined
+    const normalizedEnvUrl = (() => {
+      if (!envApiUrl) return undefined
+      
+      let trimmed = envApiUrl.trim()
+      if (!trimmed) return undefined
+
+      // Some hosting providers inject the variable name into the value (e.g. "VITE_API_URL=https://...")
+      // Strip that prefix defensively before using it.
+      if (trimmed.startsWith('VITE_API_URL=')) {
+        trimmed = trimmed.replace(/^VITE_API_URL=/, '')
+      }
+      
+      // Remove surrounding quotes if present
+      trimmed = trimmed.replace(/^["']|["']$/g, '')
+      
+      // Remove any trailing slashes
+      trimmed = trimmed.replace(/\/+$/, '')
+
+      return trimmed || undefined
+    })()
 
     let apiUrl = normalizedEnvUrl
     if (!apiUrl) {
@@ -39,6 +58,17 @@ class ApiService {
 
     this.api.interceptors.request.use(
       (config) => {
+        // Safety check: Fix malformed baseURL if it contains "VITE_API_URL="
+        if (config.baseURL && config.baseURL.includes('VITE_API_URL=')) {
+          console.warn('⚠️ Detected malformed baseURL, attempting to fix:', config.baseURL)
+          const fixed = config.baseURL
+            .replace(/^VITE_API_URL=/, '')
+            .replace(/^["']|["']$/g, '')
+            .replace(/\/+$/, '')
+          config.baseURL = fixed
+          console.log('✅ Fixed baseURL to:', fixed)
+        }
+        
         // Log every request for debugging
         console.log('📡 API Request Interceptor:', {
           method: config.method?.toUpperCase(),
