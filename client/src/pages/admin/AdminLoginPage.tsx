@@ -91,12 +91,6 @@ const AdminLoginPage: React.FC = () => {
                 )}
               </Button>
             </form>
-            
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Default: username="admin", password="password"
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
