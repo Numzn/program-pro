@@ -1,5 +1,11 @@
+const createLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number)
+  return new Date(year, (month || 1) - 1, day || 1)
+}
+
 export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString)
+  if (!dateString) return ''
+  const date = createLocalDate(dateString)
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -18,6 +24,6 @@ export const formatTime = (timeString: string): string => {
 
 export const isToday = (dateString: string): boolean => {
   const today = new Date()
-  const date = new Date(dateString)
+  const date = createLocalDate(dateString)
   return date.toDateString() === today.toDateString()
 }
