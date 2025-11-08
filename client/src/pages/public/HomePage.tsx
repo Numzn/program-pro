@@ -75,69 +75,25 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-12">
-      {/* Program-Centered Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl shadow-brand-lg">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5"></div>
-        <div className="relative px-6 py-16 sm:px-12 sm:py-20 text-center">
-          <div className="max-w-5xl mx-auto">
-            {/* Church Name */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tight">
-              {church?.name || 'Numz'}
-            </h1>
-            
-            {/* Desktop Only Content */}
-            <div className="hidden sm:block">
-              <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-                Discover our upcoming programs and events
-              </p>
-
-              {/* Install App Button */}
-              {showInstallButton && (
-                <div className="mb-8">
-                  <Button
-                    onClick={handleInstallClick}
-                    className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    📱 Install App
-                  </Button>
-                </div>
-              )}
-
-              {/* Program Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/60">
-                  <div className="text-2xl font-bold text-primary mb-1">{programs.filter(p => p.is_active).length}</div>
-                  <div className="text-sm text-gray-600">Active Programs</div>
-                </div>
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/60">
-                  <div className="text-2xl font-bold text-accent mb-1">
-                    {programs.filter(p => p.is_active && isToday(p.date)).length}
-                  </div>
-                  <div className="text-sm text-gray-600">Today's Events</div>
-                </div>
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/60">
-                  <div className="text-2xl font-bold text-secondary mb-1">
-                    {programs.filter(p => p.is_active && new Date(p.date) > new Date()).length}
-                  </div>
-                  <div className="text-sm text-gray-600">Upcoming</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Only - Install App Button */}
-            {showInstallButton && (
-              <div className="sm:hidden mb-8">
-                <Button
-                  onClick={handleInstallClick}
-                  className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  📱 Install App
-                </Button>
-              </div>
-            )}
-          </div>
+    <div className="space-y-10">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">
+            {church?.name || 'Programs'}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            Browse the latest programs and events below.
+          </p>
         </div>
+
+        {showInstallButton && (
+          <Button
+            onClick={handleInstallClick}
+            className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            📱 Install App
+          </Button>
+        )}
       </div>
 
       {programs.length === 0 ? (
@@ -157,16 +113,8 @@ const HomePage: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-8">
-          {/* Centered Section Header */}
-          <div className="text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Our Programs</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">Join us for these upcoming events and programs</p>
-          </div>
-
-          {/* Centered Program Cards */}
-          <div className="max-w-4xl mx-auto">
-            <div className="grid gap-6 lg:gap-8">
-          {programs.filter(program => program.is_active).map((program) => (
+          <div className="grid gap-6 lg:gap-8">
+            {programs.filter(program => program.is_active).map((program) => (
               <div 
                 key={program.id} 
                 className="group relative"
