@@ -46,10 +46,12 @@ class ProxyHeadersMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI(title="Church Program Pro API", version="1.0.0")
 
-# Trust proxy headers (must be before CORS middleware)
+# Setup CORS FIRST (middleware executes in reverse order, so this will run last and add headers)
+setup_cors(app)
+
+# Trust proxy headers AFTER CORS (this runs first to process headers)
 app.add_middleware(ProxyHeadersMiddleware)
 
-setup_cors(app)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
