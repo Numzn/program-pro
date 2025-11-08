@@ -114,68 +114,64 @@ const HomePage: React.FC = () => {
       ) : (
         <div className="space-y-8">
           <div className="grid gap-6 lg:gap-8">
-            {programs.filter(program => program.is_active).map((program) => (
-              <div 
-                key={program.id} 
-                className="group relative"
-              >
-                {/* Card Glow Effect */}
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-accent to-secondary rounded-2xl opacity-0 group-hover:opacity-20 blur transition-all duration-500"></div>
-                
-                <Card className="relative gradient-card border-2 border-transparent group-hover:border-primary/20 shadow-brand group-hover:shadow-brand-lg transition-all duration-300 bg-white/95 backdrop-blur-sm">
-                  <CardHeader className="pb-4">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                      {/* Left Content */}
-                      <div className="flex-1 space-y-3">
-                        {/* Title with Icon */}
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-brand">
-                            <div className="w-6 h-6 border-2 border-white rounded"></div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors">
-                              {program.title}
-                            </CardTitle>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="inline-flex items-center px-3 py-1 bg-primary/10 text-primary text-sm font-semibold rounded-lg">
-                      {formatDate(program.date)}
-                              </span>
-                      {isToday(program.date) && (
-                                <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-accent to-secondary text-white text-sm font-bold rounded-lg shadow-brand">
-                          Today
-                        </span>
-                      )}
+            {programs
+              .filter(program => program.is_active)
+              .map(program => (
+                <div key={program.id} className="group relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-accent to-secondary rounded-2xl opacity-0 group-hover:opacity-20 blur transition-all duration-500"></div>
+
+                  <Card className="relative gradient-card border-2 border-transparent group-hover:border-primary/20 shadow-brand group-hover:shadow-brand-lg transition-all duration-300 bg-white/95 backdrop-blur-sm">
+                    <CardHeader className="pb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-brand">
+                              <div className="w-6 h-6 border-2 border-white rounded"></div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors">
+                                {program.title}
+                              </CardTitle>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center px-3 py-1 bg-primary/10 text-primary text-sm font-semibold rounded-lg">
+                                  {formatDate(program.date)}
+                                </span>
+                                {isToday(program.date) && (
+                                  <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-accent to-secondary text-white text-sm font-bold rounded-lg shadow-brand">
+                                    Today
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
+
+                          {program.theme && (
+                            <div className="flex items-start space-x-2 p-3 bg-gradient-to-r from-muted/30 to-transparent rounded-xl border-l-4 border-accent">
+                              <div className="w-4 h-4 border-2 border-accent rounded-full flex-shrink-0 mt-0.5"></div>
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Theme</p>
+                                <p className="text-sm font-medium text-foreground mt-0.5">{program.theme}</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
+                      </div>
+                    </CardHeader>
 
-                        {/* Theme */}
-                    {program.theme && (
-                          <div className="flex items-start space-x-2 p-3 bg-gradient-to-r from-muted/30 to-transparent rounded-xl border-l-4 border-accent">
-                            <div className="w-4 h-4 border-2 border-accent rounded-full flex-shrink-0 mt-0.5"></div>
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Theme</p>
-                              <p className="text-sm font-medium text-foreground mt-0.5">{program.theme}</p>
-                            </div>
-                          </div>
-                    )}
-                  </div>
+                    <CardContent className="pt-4">
+                      <Button
+                        asChild
+                        className="w-full sm:w-auto shadow-brand hover:shadow-brand-lg group-hover:scale-105 transition-all duration-300"
+                      >
+                        <Link to={`/program/${program.id}`} className="inline-flex items-center justify-center">
+                          <span>View Program Details</span>
+                          <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardHeader>
-
-                  <CardContent className="pt-4">
-                    {/* Action Button */}
-                    <Button asChild className="w-full sm:w-auto shadow-brand hover:shadow-brand-lg group-hover:scale-105 transition-all duration-300">
-                      <Link to={`/program/${program.id}`} className="inline-flex items-center justify-center">
-                        <span>View Program Details</span>
-                        <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-                    </Link>
-                  </Button>
-              </CardContent>
-            </Card>
-              </div>
-          ))}
-            </div>
+              ))}
           </div>
         </div>
       )}
