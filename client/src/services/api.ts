@@ -38,9 +38,16 @@ class ApiService {
     if (!apiUrl) {
       if (typeof window !== 'undefined') {
         const origin = window.location.origin.replace(/\/$/, '')
-        apiUrl = `${origin}/api`
+        apiUrl = `${origin}/api/v1`
       } else {
-        apiUrl = '/api'
+        apiUrl = '/api/v1'
+      }
+    } else {
+      // Ensure the baseURL includes /v1 if it's not already there
+      // Handle both /api and /api/v1 cases
+      if (!apiUrl.includes('/v1')) {
+        // If it ends with /api, replace with /api/v1, otherwise append /v1
+        apiUrl = apiUrl.replace(/\/api\/?$/, '/api/v1')
       }
     }
 
@@ -61,10 +68,16 @@ class ApiService {
         // Safety check: Fix malformed baseURL if it contains "VITE_API_URL="
         if (config.baseURL && config.baseURL.includes('VITE_API_URL=')) {
           console.warn('⚠️ Detected malformed baseURL, attempting to fix:', config.baseURL)
-          const fixed = config.baseURL
+          let fixed = config.baseURL
             .replace(/^VITE_API_URL=/, '')
             .replace(/^["']|["']$/g, '')
             .replace(/\/+$/, '')
+          
+          // Ensure /v1 is included in the path
+          if (!fixed.includes('/v1')) {
+            fixed = fixed.replace(/\/api\/?$/, '/api/v1')
+          }
+          
           config.baseURL = fixed
           console.log('✅ Fixed baseURL to:', fixed)
         }
