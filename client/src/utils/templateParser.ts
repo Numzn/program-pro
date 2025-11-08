@@ -29,6 +29,43 @@ export interface ParseError {
   section: 'program' | 'schedule' | 'guests'
 }
 
+const CANONICAL_TYPES = ['worship', 'sermon', 'announcement', 'special'] as const
+type CanonicalType = typeof CANONICAL_TYPES[number]
+
+const TYPE_ALIASES: Record<string, CanonicalType> = {
+  worship: 'worship',
+  praise: 'worship',
+  prayer: 'worship',
+  service: 'worship',
+  offertory: 'worship',
+  offering: 'worship',
+  worshipsession: 'worship',
+  sermon: 'sermon',
+  message: 'sermon',
+  teaching: 'sermon',
+  homily: 'sermon',
+  announcement: 'announcement',
+  announcements: 'announcement',
+  welcome: 'announcement',
+  arrival: 'announcement',
+  registration: 'announcement',
+  briefing: 'announcement',
+  special: 'special',
+  speech: 'special',
+  keynote: 'special',
+  break: 'special',
+  fellowship: 'special',
+  networking: 'special',
+  conference: 'special',
+  meeting: 'special',
+  seminar: 'special'
+}
+
+const normalizeScheduleType = (rawType: string): CanonicalType => {
+  const normalized = rawType.toLowerCase().replace(/\s+/g, '')
+  return TYPE_ALIASES[normalized] ?? 'special'
+}
+
 export class TemplateParser {
   private errors: ParseError[] = []
 
@@ -192,22 +229,13 @@ export class TemplateParser {
         continue
       }
       
-      // Validate type
-      const validTypes = ['worship', 'sermon', 'announcement', 'special']
-      if (!validTypes.includes(type.toLowerCase())) {
-        this.errors.push({
-          line: i + 1,
-          message: `Invalid type: ${type}. Must be one of: ${validTypes.join(', ')}`,
-          section: 'schedule'
-        })
-        continue
-      }
-      
+      const canonicalType = normalizeScheduleType(type)
+
       scheduleItems.push({
         title: title || 'Untitled',
         description: description || undefined,
         start_time: time || undefined,
-        type: type.toLowerCase() as any,
+        type: canonicalType,
         order_index: orderIndex++
       })
     }

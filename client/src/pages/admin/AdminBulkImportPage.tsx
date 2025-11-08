@@ -10,6 +10,43 @@ import TemplateSaveDialog from '../../components/TemplateSaveDialog'
 import TemplateLoadDialog from '../../components/TemplateLoadDialog'
 import toast from 'react-hot-toast'
 
+const CANONICAL_TYPES = ['worship', 'sermon', 'announcement', 'special'] as const
+type CanonicalType = typeof CANONICAL_TYPES[number]
+
+const TYPE_ALIASES: Record<string, CanonicalType> = {
+  worship: 'worship',
+  praise: 'worship',
+  prayer: 'worship',
+  service: 'worship',
+  offertory: 'worship',
+  offering: 'worship',
+  worshipsession: 'worship',
+  sermon: 'sermon',
+  message: 'sermon',
+  teaching: 'sermon',
+  homily: 'sermon',
+  announcement: 'announcement',
+  announcements: 'announcement',
+  welcome: 'announcement',
+  arrival: 'announcement',
+  registration: 'announcement',
+  briefing: 'announcement',
+  special: 'special',
+  speech: 'special',
+  keynote: 'special',
+  break: 'special',
+  fellowship: 'special',
+  networking: 'special',
+  conference: 'special',
+  meeting: 'special',
+  seminar: 'special'
+}
+
+const normalizeScheduleType = (rawType: string): CanonicalType => {
+  const normalized = rawType.toLowerCase().replace(/\s+/g, '')
+  return TYPE_ALIASES[normalized] ?? 'special'
+}
+
 const AdminBulkImportPage: React.FC = () => {
   const navigate = useNavigate()
   const { bulkImportProgram } = useProgramStore()
@@ -39,28 +76,11 @@ const AdminBulkImportPage: React.FC = () => {
       
       // Normalize schedule item types (handle case sensitivity and common variations)
       if (parsedJson.schedule_items && Array.isArray(parsedJson.schedule_items)) {
-        parsedJson.schedule_items.forEach((item: any) => {
+        parsedJson.schedule_items = parsedJson.schedule_items.map((item: any) => {
           if (item.type) {
-            const normalizedType = item.type.toLowerCase().trim()
-            // Map common variations to standard types
-            const typeMap: { [key: string]: string } = {
-              'worship': 'worship',
-              'sermon': 'sermon', 
-              'announcement': 'announcement',
-              'announcements': 'announcement',
-              'special': 'special',
-              'prayer': 'worship',
-              'praise': 'worship',
-              'offering': 'worship',
-              'benediction': 'worship',
-              'welcome': 'announcement',
-              'seminar': 'special',
-              'service': 'worship',
-              'conference': 'special',
-              'meeting': 'special'
-            }
-            item.type = typeMap[normalizedType] || normalizedType
+            item.type = normalizeScheduleType(String(item.type))
           }
+          return item
         })
       }
       
@@ -84,7 +104,7 @@ const AdminBulkImportPage: React.FC = () => {
       
       // Validate schedule items
       if (parsedJson.schedule_items && Array.isArray(parsedJson.schedule_items)) {
-        const validTypes = ['worship', 'sermon', 'announcement', 'special']
+        const validTypes = new Set<string>(CANONICAL_TYPES)
         const foundTypes = new Set<string>()
         
         parsedJson.schedule_items.forEach((item: any, index: number) => {
@@ -95,8 +115,8 @@ const AdminBulkImportPage: React.FC = () => {
             errors.push({ line: 0, message: `Schedule item ${index + 1}: Missing type`, section: 'schedule' })
           } else {
             foundTypes.add(item.type)
-            if (!validTypes.includes(item.type)) {
-              errors.push({ line: 0, message: `Schedule item ${index + 1}: Invalid type "${item.type}". Must be one of: ${validTypes.join(', ')}`, section: 'schedule' })
+            if (!validTypes.has(item.type)) {
+              errors.push({ line: 0, message: `Schedule item ${index + 1}: Invalid type "${item.type}". Must be one of: ${Array.from(validTypes).join(', ')}`, section: 'schedule' })
             }
           }
         })
