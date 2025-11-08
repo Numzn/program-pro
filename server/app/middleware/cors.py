@@ -26,20 +26,11 @@ def setup_cors(app):
         if origin and origin not in seen:
             seen.add(origin)
             unique_origins.append(origin)
-    
+
     logger.info(f"🔒 Configuring CORS with allowed origins: {unique_origins}")
-    
-    # Use regex pattern to match all Render subdomains dynamically
-    # This ensures any program-pro*.onrender.com subdomain is allowed
-    render_regex = r"https://program-pro.*\.onrender\.com"
-    localhost_regex = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
-    combined_regex = f"({render_regex}|{localhost_regex})"
-    
-    logger.info(f"🔒 CORS regex pattern: {combined_regex}")
-    
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origin_regex=combined_regex,
         allow_origins=unique_origins,  # Explicit list for exact matches
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
