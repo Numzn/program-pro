@@ -12,9 +12,42 @@ interface ScheduleItemsSectionProps {
   onItemsChange: (items: ScheduleItemInput[]) => void
 }
 
+const TYPE_OPTIONS = [
+  { value: 'worship', label: 'Worship' },
+  { value: 'sermon', label: 'Sermon' },
+  { value: 'announcement', label: 'Announcement' },
+  { value: 'special', label: 'Special' }
+] as const
+
+const formatTimeForInput = (value?: string) => {
+  if (!value) return ''
+  const trimmed = value.trim()
+  if (/^\d{2}:\d{2}$/.test(trimmed)) return trimmed
+  const isoMatch = trimmed.match(/T(\d{2}:\d{2})/)
+  if (isoMatch) return isoMatch[1]
+  if (/^\d{2}:\d{2}:\d{2}$/.test(trimmed)) return trimmed.slice(0, 5)
+  return trimmed
+}
+
+const normalizeTimeValue = (value?: string) => {
+  if (!value) return ''
+  const trimmed = value.trim()
+  if (/^\d{2}:\d{2}$/.test(trimmed)) return trimmed
+  if (/^\d{2}:\d{2}:\d{2}$/.test(trimmed)) return trimmed.slice(0, 5)
+  try {
+    const parsed = new Date(trimmed)
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(11, 16)
+    }
+  } catch {
+    // ignore parse errors and return raw value
+  }
+  return trimmed
+}
+
 const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
   scheduleItems,
-  programDate,
+  programDate: _programDate,
   onItemsChange
 }) => {
   const [isAdding, setIsAdding] = useState(false)
@@ -47,15 +80,10 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
         title: newItem.title.trim(),
         description: newItem.description.trim() || undefined,
         type: newItem.type || 'worship',
-        order_index: scheduleItems.length
-      }
-
-      // Convert time to ISO string if provided
-      if (newItem.start_time.trim() && programDate) {
-        item.start_time = new Date(`${programDate}T${newItem.start_time}`).toISOString()
-      } else if (newItem.start_time.trim()) {
-        const today = new Date().toISOString().split('T')[0]
-        item.start_time = new Date(`${today}T${newItem.start_time}`).toISOString()
+        order_index: scheduleItems.length,
+        start_time: newItem.start_time.trim()
+          ? normalizeTimeValue(newItem.start_time)
+          : undefined
       }
 
       console.log('✅ Created schedule item object:', item)
@@ -99,6 +127,40 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
     onItemsChange(newItems)
   }
 
+  const handleItemChange = (
+    index: number,
+    field: keyof ScheduleItemInput,
+    value: string
+  ) => {
+    const updated = scheduleItems.map((item, i) => {
+      if (i !== index) return item
+      const next: ScheduleItemInput = { ...item }
+      if (field === 'title' || field === 'description') {
+        // allow empty string while editing
+        ;(next as any)[field] = value
+      } else if (field === 'start_time') {
+        const normalized = normalizeTimeValue(value)
+        next.start_time = normalized || undefined
+      } else if (field === 'type') {
+        next.type = (value as ScheduleItemInput['type']) || 'worship'
+      }
+      return next
+    })
+    onItemsChange(updated)
+  }
+
+  const handleDurationChange = (index: number, value: string) => {
+    const parsed = value === '' ? undefined : Number(value)
+    if (parsed !== undefined && (isNaN(parsed) || parsed < 0)) {
+      return
+    }
+    const updated = scheduleItems.map((item, i) => {
+      if (i !== index) return item
+      return { ...item, duration_minutes: parsed }
+    })
+    onItemsChange(updated)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -112,51 +174,82 @@ const ScheduleItemsSection: React.FC<ScheduleItemsSectionProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {scheduleItems.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {scheduleItems.map((item, index) => (
               <div
                 key={`${item.title}-${item.order_index}-${index}`}
-                className="flex items-center gap-3 p-4 border border-border rounded-lg"
+                className="space-y-4 p-4 border border-border rounded-lg"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{item.title}</span>
-                    {item.start_time && (
-                      <span className="text-sm text-gray-500">
-                        {new Date(item.start_time).toLocaleTimeString('en-US', { 
-                          hour: '2-digit', 
-                          minute: '2-digit', 
-                          hour12: true 
-                        })}
-                      </span>
-                    )}
-                    <span className={`px-2 py-1 text-xs rounded-full bg-primary/10 text-primary`}>
-                      {item.type || 'worship'}
-                    </span>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    label="Title"
+                    value={item.title}
+                    onChange={(e) => handleItemChange(index, 'title', e.target.value)}
+                    placeholder="e.g., Opening Worship"
+                  />
+                  <Input
+                    label="Start Time"
+                    type="time"
+                    value={formatTimeForInput(item.start_time)}
+                    onChange={(e) => handleItemChange(index, 'start_time', e.target.value)}
+                  />
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Type</label>
+                    <select
+                      value={item.type || 'worship'}
+                      onChange={(e) => handleItemChange(index, 'type', e.target.value)}
+                      className="w-full p-2 border rounded-md text-sm"
+                    >
+                      {TYPE_OPTIONS.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  {item.description && (
-                    <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                  )}
+                  <Input
+                    label="Duration (minutes)"
+                    type="number"
+                    min={0}
+                    value={
+                      item.duration_minutes !== undefined && item.duration_minutes !== null
+                        ? String(item.duration_minutes)
+                        : ''
+                    }
+                    onChange={(e) => handleDurationChange(index, e.target.value)}
+                    placeholder="Optional"
+                  />
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Description</label>
+                    <textarea
+                      value={item.description || ''}
+                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                      className="w-full min-h-[80px] p-2 border rounded-md text-sm"
+                      placeholder="e.g., Speaker: Rev. Isaac Mphande"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    type="button"
-                    onClick={() => handleMove(index, 'up')}
-                    disabled={index === 0}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    type="button"
-                    onClick={() => handleMove(index, 'down')}
-                    disabled={index === scheduleItems.length - 1}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      type="button"
+                      onClick={() => handleMove(index, 'up')}
+                      disabled={index === 0}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      type="button"
+                      onClick={() => handleMove(index, 'down')}
+                      disabled={index === scheduleItems.length - 1}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"

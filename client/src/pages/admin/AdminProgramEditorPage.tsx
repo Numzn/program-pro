@@ -11,6 +11,31 @@ import { useDebouncedCallback } from '../../hooks/useDebounce'
 import toast from 'react-hot-toast'
 import { Save, Trash2, Download, Clock } from 'lucide-react'
 
+const normalizeTimeForState = (value?: string | null) => {
+  if (!value) return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  const match = trimmed.match(/(\d{2}:\d{2})/)
+  if (match) return match[1]
+  if (/^\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+    return trimmed.slice(0, 5)
+  }
+  try {
+    const parsed = new Date(trimmed)
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(11, 16)
+    }
+  } catch {
+    // ignore parsing errors
+  }
+  return trimmed
+}
+
+const normalizeTimeForSubmission = (value?: string) => {
+  const normalized = normalizeTimeForState(value)
+  return normalized || undefined
+}
+
 const AdminProgramEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -218,9 +243,10 @@ const AdminProgramEditorPage: React.FC = () => {
         activeProgram.schedule_items?.map(item => ({
           title: item.title,
           description: item.description,
-          start_time: item.start_time || '',
+          start_time: normalizeTimeForState(item.start_time),
           type: item.type || 'worship',
-          order_index: item.order_index || 0
+          order_index: item.order_index || 0,
+          duration_minutes: item.duration_minutes
         })) || []
       )
 
@@ -283,21 +309,13 @@ const AdminProgramEditorPage: React.FC = () => {
         }
         
         // Only include description if it has a value
-        if (item.description?.trim()) {
+        if (item.description && item.description.trim()) {
           cleaned.description = item.description.trim()
         }
         
-        // Only include start_time if it has a valid value
-        if (item.start_time?.trim()) {
-          // If it's just a time (HH:MM), we need to combine with date
-          if (item.start_time.match(/^\d{2}:\d{2}$/)) {
-            // Combine with program date
-            if (formData.date) {
-              cleaned.start_time = `${formData.date}T${item.start_time}:00`
-            }
-          } else {
-            cleaned.start_time = item.start_time
-          }
+        const normalizedStart = normalizeTimeForSubmission(item.start_time)
+        if (normalizedStart) {
+          cleaned.start_time = normalizedStart
         }
         
         // Only include duration_minutes if it exists

@@ -72,6 +72,30 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
     onGuestsChange(newGuests)
   }
 
+  const handleGuestChange = (
+    index: number,
+    field: keyof SpecialGuestInput,
+    value: string
+  ) => {
+    const updated = specialGuests.map((guest, i) => {
+      if (i !== index) return guest
+      const next: SpecialGuestInput = { ...guest }
+      if (field === 'name') {
+        next.name = value
+      } else if (field === 'role') {
+        next.role = value || undefined
+      } else if (field === 'bio') {
+        next.bio = value || undefined
+      } else if (field === 'photo_url') {
+        next.photo_url = value || undefined
+      } else if (field === 'description') {
+        next.description = value || undefined
+      }
+      return next
+    })
+    onGuestsChange(updated)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -89,49 +113,65 @@ const SpecialGuestsSection: React.FC<SpecialGuestsSectionProps> = ({
             {specialGuests.map((guest, index) => (
               <div
                 key={`${guest.name}-${guest.display_order}-${index}`}
-                className="flex items-start gap-4 p-4 border border-border rounded-lg"
+                className="space-y-4 p-4 border border-border rounded-lg"
               >
-                {guest.photo_url ? (
-                  <img
-                    src={guest.photo_url}
-                    alt={guest.name}
-                    className="w-14 h-14 rounded-full object-cover border-2 border-border"
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    label="Name"
+                    value={guest.name}
+                    onChange={(e) => handleGuestChange(index, 'name', e.target.value)}
+                    placeholder="Guest name"
+                    required
                   />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-2 border-border">
-                    <User className="h-7 w-7 text-primary" />
+                  <Input
+                    label="Role"
+                    value={guest.role || ''}
+                    onChange={(e) => handleGuestChange(index, 'role', e.target.value)}
+                    placeholder="Role or title"
+                  />
+                  <Input
+                    label="Photo URL"
+                    value={guest.photo_url || ''}
+                    onChange={(e) => handleGuestChange(index, 'photo_url', e.target.value)}
+                    placeholder="https://example.com/photo.jpg"
+                  />
+                  <Input
+                    label="Additional Notes"
+                    value={guest.description || ''}
+                    onChange={(e) => handleGuestChange(index, 'description', e.target.value)}
+                    placeholder="Optional notes"
+                  />
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Bio</label>
+                    <textarea
+                      value={guest.bio || ''}
+                      onChange={(e) => handleGuestChange(index, 'bio', e.target.value)}
+                      className="w-full min-h-[80px] p-2 border rounded-md text-sm"
+                      placeholder="Short biography or introduction"
+                    />
                   </div>
-                )}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium">{guest.name}</h4>
-                    {guest.role && (
-                      <span className="text-sm text-gray-600">• {guest.role}</span>
-                    )}
-                  </div>
-                  {guest.bio && (
-                    <p className="text-sm text-gray-600">{guest.bio}</p>
-                  )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    type="button"
-                    onClick={() => handleMove(index, 'up')}
-                    disabled={index === 0}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    type="button"
-                    onClick={() => handleMove(index, 'down')}
-                    disabled={index === specialGuests.length - 1}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      type="button"
+                      onClick={() => handleMove(index, 'up')}
+                      disabled={index === 0}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      type="button"
+                      onClick={() => handleMove(index, 'down')}
+                      disabled={index === specialGuests.length - 1}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
