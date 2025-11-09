@@ -51,6 +51,10 @@ const AdminLoginPage: React.FC = () => {
               src="/church-logo.png"
               alt="Church Logo"
               className="mx-auto mb-6 h-14 w-auto object-contain"
+              loading="eager"
+              decoding="async"
+              width="56"
+              height="56"
             />
             <CardTitle className="text-3xl font-bold text-foreground">Admin Login</CardTitle>
             <CardDescription className="text-base">
