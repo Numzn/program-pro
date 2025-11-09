@@ -26,15 +26,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo & Brand */}
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
-              {/* Logo Container - No Blur Effect */}
+              {/* Logo */}
               <div className="flex-shrink-0">
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 p-1 sm:p-1.5 flex items-center justify-center">
-                  <img 
-                    src="/church-logo.png" 
-                    alt="Church Logo" 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
+                <img 
+                  src="/church-logo.png" 
+                  alt="Church Logo" 
+                  className="h-10 sm:h-12 w-auto object-contain"
+                />
               </div>
               
               {/* Brand Text */}
