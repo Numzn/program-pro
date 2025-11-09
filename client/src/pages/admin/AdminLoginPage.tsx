@@ -47,7 +47,11 @@ const AdminLoginPage: React.FC = () => {
       <div className="w-full max-w-md">
         <Card className="gradient-card shadow-brand-lg">
           <CardHeader className="text-center pb-8">
-            <span className="block mb-6 text-3xl font-bold text-primary">CP</span>
+            <img
+              src="/church-logo.png"
+              alt="Church Logo"
+              className="mx-auto mb-6 h-14 w-auto object-contain"
+            />
             <CardTitle className="text-3xl font-bold text-foreground">Admin Login</CardTitle>
             <CardDescription className="text-base">
               Sign in to manage church programs
